@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Sparkles, Send, ArrowUpRight, Edit3, FileText } from 'lucide-react';
+import { Search, SlidersHorizontal, Sparkles, Send, ArrowUpRight, Edit3, FileText, Image, Plus } from 'lucide-react';
 import { Product, ViewMode, BrandSettings } from '../types';
 import { ProductCard } from './ProductCard';
 import { triggerHaptic } from '../utils/telegram';
@@ -12,6 +12,7 @@ interface ClientCatalogProps {
   onOpenSiteContentModal?: () => void;
   onSelectProduct: (product: Product) => void;
   onQuickAddToCart: (product: Product, size: string) => void;
+  onAddProduct?: () => void;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
   onToggleStock?: (productId: string) => void;
@@ -34,6 +35,7 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
   onOpenSiteContentModal,
   onSelectProduct,
   onQuickAddToCart,
+  onAddProduct,
   onEditProduct,
   onDeleteProduct,
   onToggleStock,
@@ -116,29 +118,41 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
             {heroDescription}
           </p>
 
-          <div className="pt-2 flex flex-wrap items-center gap-3">
+          <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
             <button
               onClick={() => {
                 triggerHaptic('medium');
                 onOpenTelegramSetup();
               }}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#38bdf8] text-[#082f49] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#7dd3fc] transition-all shadow-[0_0_20px_rgba(56,189,248,0.25)]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#38bdf8] text-[#082f49] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#7dd3fc] transition-all shadow-[0_0_20px_rgba(56,189,248,0.25)]"
             >
               <Send className="w-3.5 h-3.5" />
               <span>Запуск в Telegram (2 мин)</span>
+            </button>
+
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onOpenTelegramSetup();
+              }}
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#181c24] hover:bg-[#222834] text-white font-mono text-xs font-semibold border border-[#303847] transition-all"
+              title="Скачать баннер 640x360 для @BotFather"
+            >
+              <Image className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span>Баннер 640×360</span>
             </button>
 
             <a
               href={`https://t.me/${settings.botUsername.replace(/^@/, '')}`}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>Бот: @{settings.botUsername}</span>
+              <span>@{settings.botUsername}</span>
             </a>
 
-            <div className="text-[11px] font-mono text-[#6c7787] flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#14171d] border border-[#222731]">
+            <div className="w-full sm:w-auto text-[11px] font-mono text-[#6c7787] flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-lg bg-[#14171d] border border-[#222731]">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>{products.filter((p) => p.inStock).length} моделей в наличии</span>
             </div>
@@ -180,7 +194,21 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
           </div>
 
           {/* Right filters: Sort & In-stock toggle */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            {viewMode === 'admin' && onAddProduct && (
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('medium');
+                  onAddProduct();
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#f1f5f9] text-[#090a0c] font-mono text-xs font-bold uppercase tracking-wider hover:bg-white transition-all shadow-[0_0_15px_rgba(241,245,249,0.2)]"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Добавить товар</span>
+              </button>
+            )}
+
             <label className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#121419] border border-[#222731] text-xs font-mono text-[#94a3b8] cursor-pointer hover:border-[#384152] transition-colors">
               <input
                 type="checkbox"

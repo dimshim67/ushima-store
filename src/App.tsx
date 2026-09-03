@@ -314,6 +314,7 @@ export default function App() {
             onOpenSiteContentModal={() => setIsSiteContentOpen(true)}
             onSelectProduct={(p) => setSelectedProduct(p)}
             onQuickAddToCart={(p, size) => handleAddToCart(p, size, 1)}
+            onAddProduct={handleOpenAddProduct}
             onEditProduct={handleOpenEditProduct}
             onDeleteProduct={handleDeleteProduct}
             onToggleStock={handleToggleStock}

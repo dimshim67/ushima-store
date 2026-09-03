@@ -97,24 +97,23 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             id="view-mode-toggle-btn"
             onClick={handleModeClick}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg border text-xs font-mono tracking-wider transition-all duration-200 ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono tracking-wider transition-all duration-200 ${
               viewMode === 'admin'
-                ? 'bg-[#e2e8f0] text-[#0f172a] border-[#e2e8f0] font-semibold shadow-[0_0_15px_rgba(226,232,240,0.15)]'
-                : 'bg-[#15181d] text-[#94a3b8] border-[#252a32] hover:text-[#e2e8f0] hover:border-[#38404c]'
+                ? 'bg-[#e2e8f0] text-[#0f172a] border-[#e2e8f0] font-bold shadow-[0_0_18px_rgba(226,232,240,0.25)]'
+                : 'bg-[#181c24] text-[#cbd5e1] border-[#333d4e] hover:border-white hover:text-white hover:bg-[#202632]'
             }`}
-            title={viewMode === 'admin' ? 'Перейти в режим клиента' : 'Вход в панель управления бренда'}
+            title={viewMode === 'admin' ? 'Вернуться в режим покупателя' : 'Панель управления (редактирование товаров, цен, фото)'}
           >
             {viewMode === 'admin' ? (
               <>
                 <ShieldCheck className="w-3.5 h-3.5 text-[#0f172a]" />
-                <span className="hidden xs:inline">Режим:</span>
+                <span className="hidden xs:inline">Панель:</span>
                 <span>Владелец</span>
               </>
             ) : (
               <>
-                <User className="w-3.5 h-3.5 text-[#64748b]" />
-                <span className="hidden xs:inline">Каталог</span>
-                <span className="text-[10px] text-[#52525b] border border-[#27272a] rounded px-1">Admin</span>
+                <User className="w-3.5 h-3.5 text-[#38bdf8]" />
+                <span className="font-semibold">Админка</span>
               </>
             )}
           </button>

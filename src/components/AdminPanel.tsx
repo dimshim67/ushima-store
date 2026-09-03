@@ -229,18 +229,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="space-y-4">
           {/* Action Row */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Поиск по названию или описанию..."
-                className="w-full max-w-xs px-3.5 py-2 rounded-lg bg-[#14161b] border border-[#262c37] text-white text-xs font-mono focus:border-white focus:outline-none"
+                className="w-full sm:max-w-xs px-3.5 py-2 rounded-lg bg-[#14161b] border border-[#262c37] text-white text-xs font-mono focus:border-white focus:outline-none"
               />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3 py-2 rounded-lg bg-[#14161b] border border-[#262c37] text-white text-xs font-mono focus:border-white focus:outline-none"
+                className="w-full sm:w-auto px-3 py-2 rounded-lg bg-[#14161b] border border-[#262c37] text-white text-xs font-mono focus:border-white focus:outline-none"
               >
                 <option value="all">Все категории</option>
                 <option value="outerwear">Верхняя одежда</option>

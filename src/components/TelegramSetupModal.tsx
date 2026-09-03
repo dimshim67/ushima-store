@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Send, Copy, Check, ExternalLink, Sparkles } from 'lucide-react';
 import { BrandSettings } from '../types';
 import { triggerHaptic } from '../utils/telegram';
+import { BannerPreviewCanvas } from './BannerPreviewCanvas';
 
 interface TelegramSetupModalProps {
   isOpen: boolean;
@@ -142,12 +143,19 @@ export const TelegramSetupModal: React.FC<TelegramSetupModalProps> = ({
               <ul className="text-xs text-[#94a3b8] space-y-1 pl-4 list-disc">
                 <li>Название: <strong className="text-white">УШИМА</strong></li>
                 <li>Краткое описание: <strong className="text-white">Каталог одежды бренда УШИМА</strong></li>
-                <li>Картинку или логотип (640x640)</li>
+                <li>
+                  <strong className="text-emerald-400 font-semibold">«Please upload a photo, 640x360 pixels»</strong>: скачайте готовый баннер ниже или отправьте <code className="text-white bg-[#1a1f29] px-1 py-0.5 rounded">/empty</code>
+                </li>
                 <li>
                   В поле Web App URL вставьте: <span className="text-[#38bdf8] font-bold">{appUrl}</span>
                 </li>
                 <li>Короткое имя (short name): например, <strong className="text-white">shop</strong></li>
               </ul>
+
+              {/* Ready-to-use 640x360 Banner Preview & Download */}
+              <div className="pt-2">
+                <BannerPreviewCanvas settings={settings} />
+              </div>
             </div>
 
             {/* Step 3 */}
