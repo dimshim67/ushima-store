@@ -65,33 +65,42 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center gap-3">
           <BrandLogo size="md" showText={true} />
 
-          {/* Telegram badge indicator / quick guide */}
-          <button
-            onClick={handleSetupClick}
-            title="Инструкция по запуску в Telegram"
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#2b3444] bg-[#151821] hover:bg-[#1a1f2c] hover:border-[#38bdf8]/50 text-[11px] text-[#94a3b8] hover:text-white font-mono transition-all group"
-          >
-            <Send className="w-3 h-3 text-[#38bdf8] group-hover:scale-110 transition-transform" />
-            <span>{inTelegram ? 'TG Mini App' : 'Запуск в TG'}</span>
-            <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#222938] text-[#38bdf8]">2 мин</span>
-            {tgUser?.first_name && (
-              <span className="text-white border-l border-[#2e343d] pl-1.5 font-medium truncate max-w-[90px]">
-                @{tgUser.username || tgUser.first_name}
-              </span>
-            )}
-          </button>
+          {/* Telegram status indicator or admin setup button */}
+          {viewMode === 'admin' ? (
+            <button
+              onClick={handleSetupClick}
+              title="Оформление Telegram-бота и кнопка открытия сайта"
+              className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#2b3444] bg-[#151821] hover:bg-[#1a1f2c] hover:border-[#38bdf8]/50 text-[11px] text-[#94a3b8] hover:text-white font-mono transition-all group"
+            >
+              <Send className="w-3 h-3 text-[#38bdf8] group-hover:scale-110 transition-transform" />
+              <span>Оформление TG-бота</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#222938] text-[#38bdf8] font-bold">+ Меню</span>
+            </button>
+          ) : inTelegram ? (
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#232a36] bg-[#11141a] text-[11px] text-[#8895a7] font-mono">
+              <Send className="w-3 h-3 text-[#38bdf8]" />
+              <span>Telegram Mini App</span>
+              {tgUser?.first_name && (
+                <span className="text-white border-l border-[#2e343d] pl-1.5 font-medium truncate max-w-[90px]">
+                  @{tgUser.username || tgUser.first_name}
+                </span>
+              )}
+            </div>
+          ) : null}
         </div>
 
         {/* Right actions: Mode toggle & Cart button */}
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Quick TG setup button for mobile */}
-          <button
-            onClick={handleSetupClick}
-            className="sm:hidden p-2 rounded-lg border border-[#262c37] bg-[#14171d] text-[#38bdf8] hover:bg-[#1c222c] transition-colors"
-            title="Инструкция TG"
-          >
-            <HelpCircle className="w-4 h-4" />
-          </button>
+          {/* Quick TG setup button for mobile - admin only */}
+          {viewMode === 'admin' && (
+            <button
+              onClick={handleSetupClick}
+              className="sm:hidden p-2 rounded-lg border border-[#262c37] bg-[#14171d] text-[#38bdf8] hover:bg-[#1c222c] transition-colors"
+              title="Оформление TG-бота"
+            >
+              <HelpCircle className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Mode Switcher Button: Client vs Brand Owner */}
           <button

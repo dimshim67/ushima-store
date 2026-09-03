@@ -119,37 +119,14 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
-            <button
-              onClick={() => {
-                triggerHaptic('medium');
-                onOpenTelegramSetup();
-              }}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#38bdf8] text-[#082f49] font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#7dd3fc] transition-all shadow-[0_0_20px_rgba(56,189,248,0.25)]"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Запуск в Telegram (2 мин)</span>
-            </button>
-
-            <button
-              onClick={() => {
-                triggerHaptic('light');
-                onOpenTelegramSetup();
-              }}
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-lg bg-[#181c24] hover:bg-[#222834] text-white font-mono text-xs font-semibold border border-[#303847] transition-all"
-              title="Скачать баннер 640x360 для @BotFather"
-            >
-              <Image className="w-3.5 h-3.5 text-[#38bdf8]" />
-              <span>Баннер 640×360</span>
-            </button>
-
             <a
               href={`https://t.me/${settings.botUsername.replace(/^@/, '')}`}
               target="_blank"
               rel="noreferrer"
-              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
             >
               <Send className="w-3.5 h-3.5" />
-              <span>@{settings.botUsername}</span>
+              <span>Наш Telegram: @{settings.botUsername.replace(/^@/, '')}</span>
             </a>
 
             <div className="w-full sm:w-auto text-[11px] font-mono text-[#6c7787] flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-lg bg-[#14171d] border border-[#222731]">

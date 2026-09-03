@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Plus, Trash2, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
+import { X, Upload, Plus, Trash2, Image as ImageIcon, Sparkles, Check, Loader2, Database } from 'lucide-react';
 import { Product } from '../types';
 import { triggerHaptic } from '../utils/telegram';
 
@@ -10,6 +10,42 @@ interface EditProductModalProps {
   onClose: () => void;
   onSave: (product: Product) => void;
   onDelete?: (productId: string) => void;
+}
+
+// Client-side image compressor: scales high-res camera photos down to crisp ~1400px JPEG
+function compressImageFile(file: File, maxDim = 1400, quality = 0.86): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (readerEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } else {
+          resolve(readerEvent.target?.result as string);
+        }
+      };
+      img.onerror = () => resolve(readerEvent.target?.result as string);
+      img.src = readerEvent.target?.result as string;
+    };
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
 }
 
 const PRESET_METALLIC_PHOTOS = [
@@ -46,6 +82,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [urlInput, setUrlInput] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -78,21 +115,27 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle local image file upload (converts to base64 for persistent client-side storage)
-  const handleFileUpload = (files: FileList | null) => {
+  // Handle local image file upload (compresses high-res files and prepares for DB storage)
+  const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     triggerHaptic('light');
 
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith('image/')) return;
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (e.target?.result && typeof e.target.result === 'string') {
-          setImages((prev) => [...prev, e.target!.result as string]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    setIsProcessingImages(true);
+    try {
+      const validFiles = Array.from(files).filter((f) => f.type.startsWith('image/'));
+      const compressedResults = await Promise.all(
+        validFiles.map((file) => compressImageFile(file, 1400, 0.86))
+      );
+      const validImages = compressedResults.filter((img) => Boolean(img && img.length > 50));
+      if (validImages.length > 0) {
+        setImages((prev) => [...prev, ...validImages]);
+        triggerHaptic('medium');
+      }
+    } catch (err) {
+      console.error('Error compressing images:', err);
+    } finally {
+      setIsProcessingImages(false);
+    }
   };
 
   const handleAddUrlImage = () => {
@@ -221,15 +264,26 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
                 multiple
                 accept="image/*"
                 className="hidden"
+                disabled={isProcessingImages}
                 onChange={(e) => handleFileUpload(e.target.files)}
               />
-              <Upload className="w-7 h-7 mx-auto mb-2 text-[#94a3b8]" />
-              <p className="font-mono text-xs text-white font-medium mb-1">
-                Нажмите для выбора фото или перетащите файлы сюда
-              </p>
-              <p className="font-mono text-[11px] text-[#6b7685]">
-                Поддерживаются JPG, PNG, WEBP, а также фото прямо с камеры смартфона
-              </p>
+              {isProcessingImages ? (
+                <div className="py-3 flex flex-col items-center justify-center">
+                  <Loader2 className="w-7 h-7 text-[#38bdf8] animate-spin mb-2" />
+                  <p className="font-mono text-xs text-white font-medium">Оптимизация и подготовка фото...</p>
+                  <p className="font-mono text-[11px] text-[#6b7685] mt-0.5">Сжатие для моментальной загрузки в Telegram</p>
+                </div>
+              ) : (
+                <>
+                  <Upload className="w-7 h-7 mx-auto mb-2 text-[#94a3b8]" />
+                  <p className="font-mono text-xs text-white font-medium mb-1">
+                    Нажмите для выбора фото или перетащите файлы сюда
+                  </p>
+                  <p className="font-mono text-[11px] text-[#6b7685]">
+                    Поддерживаются JPG, PNG, WEBP и фото с камеры. Сохраняются прямо в базу данных
+                  </p>
+                </>
+              )}
             </div>
 
             {/* Add by URL input */}

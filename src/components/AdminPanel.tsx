@@ -17,14 +17,18 @@ import {
   DollarSign,
   Layers,
   Eye,
+  Database,
 } from 'lucide-react';
 import { Product, Order, BrandSettings } from '../types';
 import { triggerHaptic } from '../utils/telegram';
+import { BotBrandingGenerator } from './BotBrandingGenerator';
+import { DatabaseSettings } from './DatabaseSettings';
 
 interface AdminPanelProps {
   products: Product[];
   orders: Order[];
   settings: BrandSettings;
+  supabaseConfig?: { url?: string; anonKey?: string; enabled?: boolean };
   onAddProduct: () => void;
   onEditProduct: (product: Product) => void;
   onDeleteProduct: (productId: string) => void;
@@ -37,12 +41,15 @@ interface AdminPanelProps {
   onResetDefaults: () => void;
   onSwitchToClient: () => void;
   onOpenTelegramSetup: () => void;
+  onRefreshFromDatabase?: () => Promise<void>;
+  showToast?: (msg: string) => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
   products,
   orders,
   settings,
+  supabaseConfig,
   onAddProduct,
   onEditProduct,
   onDeleteProduct,
@@ -55,8 +62,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onResetDefaults,
   onSwitchToClient,
   onOpenTelegramSetup,
+  onRefreshFromDatabase = async () => {},
+  showToast = () => {},
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'settings' | 'data'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'telegram' | 'database' | 'settings' | 'data'>('products');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [localSettings, setLocalSettings] = useState<BrandSettings>({ ...settings });
@@ -119,10 +128,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenTelegramSetup}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a2333] border border-[#2b4468] text-[#38bdf8] font-mono text-xs hover:bg-[#202d42] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a2333] border border-[#2b4468] text-[#38bdf8] font-mono text-xs font-semibold hover:bg-[#202d42] transition-colors"
           >
             <Send className="w-3.5 h-3.5" />
-            <span>Инструкция BotFather</span>
+            <span>Оформление бота & Кнопка меню</span>
           </button>
 
           <button
@@ -197,6 +206,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         >
           <ShoppingBag className="w-4 h-4" />
           <span>Заказы ({orders.length})</span>
+        </button>
+
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('telegram');
+          }}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-mono text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+            activeTab === 'telegram'
+              ? 'bg-[#1a2333] text-[#38bdf8] border border-[#2d476f] shadow-[0_0_15px_rgba(56,189,248,0.2)]'
+              : 'text-[#8b96a7] hover:text-white'
+          }`}
+        >
+          <Send className="w-4 h-4 text-[#38bdf8]" />
+          <span>Оформление TG-бота</span>
+          <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse" />
+        </button>
+
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('database');
+          }}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-mono text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+            activeTab === 'database'
+              ? 'bg-[#162721] text-emerald-400 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+              : 'text-[#8b96a7] hover:text-white'
+          }`}
+        >
+          <Database className="w-4 h-4 text-emerald-400" />
+          <span>База данных (Supabase)</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
         </button>
 
         <button
@@ -493,7 +534,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
-      {/* TAB 3: BRAND SETTINGS */}
+      {/* TAB 3: TELEGRAM BOT BRANDING & MENU BUTTON */}
+      {activeTab === 'telegram' && (
+        <div className="p-4 sm:p-6 rounded-2xl bg-[#0e1117] border border-[#222835]">
+          <BotBrandingGenerator
+            settings={settings}
+            onPreviewClick={onSwitchToClient}
+          />
+        </div>
+      )}
+
+      {/* TAB 4: DATABASE & SUPABASE */}
+      {activeTab === 'database' && (
+        <DatabaseSettings
+          initialConfig={supabaseConfig}
+          productsCount={products.length}
+          ordersCount={orders.length}
+          onRefreshData={onRefreshFromDatabase}
+          onResetData={async () => {
+            await onResetDefaults();
+          }}
+          showToast={showToast}
+        />
+      )}
+
+      {/* TAB 5: BRAND SETTINGS */}
       {activeTab === 'settings' && (
         <form onSubmit={handleSaveSettings} className="p-5 rounded-xl bg-[#121419] border border-[#242933] space-y-4 max-w-2xl">
           <h3 className="font-display font-bold text-base text-white mb-2">

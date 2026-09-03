@@ -1,0 +1,161 @@
+{
+  "products": [
+    {
+      "id": "prod-1",
+      "title": "TITANIUM DOWN PUFFER",
+      "subtitle": "EDITION 01 / LIQUID SILVER",
+      "price": 28900,
+      "originalPrice": 34000,
+      "category": "outerwear",
+      "images": [
+        "https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Укороченный объемный пуховик из японского нейлона с зеркальным микро-металлическим напылением. Ветро- и влагозащитная мембрана, утеплитель из премиального гусиного пуха 90/10. Фирменная матовая фурнитура из титанового сплава.",
+      "composition": "100% Metalized Polyamide / 90% Down 10% Feather / Lining: Viscose",
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "inStock": true,
+      "isFeatured": true,
+      "createdAt": 1788467856013
+    },
+    {
+      "id": "prod-2",
+      "title": "GUNMETAL HEAVY HOODIE",
+      "subtitle": "500 GSM RAW COTTON",
+      "price": 13500,
+      "category": "hoodies",
+      "images": [
+        "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1509967419530-da38b4704bc6?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Оверсайз худи гиперплотного плетения с энзимной стиркой под холодный оружейный металл. Двойной жесткий капюшон без люверсов, спущенная линия плеча и скрытые боковые карманы.",
+      "composition": "100% Organic Heavy Cotton (500 GSM), Acid Wash Finish",
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "inStock": true,
+      "isFeatured": true,
+      "createdAt": 1788466856013
+    },
+    {
+      "id": "prod-3",
+      "title": "COLD STEEL OVERSIZED TEE",
+      "subtitle": "GRAPHITE COATING",
+      "price": 6900,
+      "category": "tees",
+      "images": [
+        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Свободная футболка скульптурного кроя в сером стальном оттенке. Двойная горловина 3 см, необработанные нижние строчки и фирменная лазерная гравировка на металлическом ярлыке.",
+      "composition": "100% Combed Compact Cotton (280 GSM)",
+      "sizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+      ],
+      "inStock": true,
+      "isFeatured": false,
+      "createdAt": 1788465856013
+    },
+    {
+      "id": "prod-4",
+      "title": "BRUSHED CHROME CARGO PANTS",
+      "subtitle": "MODULAR SILHOUETTE",
+      "price": 18400,
+      "originalPrice": 21000,
+      "category": "bottoms",
+      "images": [
+        "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1517445312882-bc9910d016b7?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Технологичные карго брюки со съемными объемными карманами на молниях Raccagni. Ткань с эффектом брашированного металла с водоотталкивающим тефлоновым слоем.",
+      "composition": "70% Cotton, 30% Metallic Tech Nylon",
+      "sizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+      ],
+      "inStock": true,
+      "isFeatured": true,
+      "createdAt": 1788464856013
+    },
+    {
+      "id": "prod-5",
+      "title": "RAW SLATE BOMBER JACKET",
+      "subtitle": "METALLIC WEAVE",
+      "price": 24500,
+      "category": "outerwear",
+      "images": [
+        "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1548883354-7622d03aca27?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Минималистичный утепленный бомбер в матовом сланцево-сером исполнении. Рельефные шерстяные манжеты, скрытая планка с магнитной фиксацией и акцентный карман для девайсов.",
+      "composition": "85% Virgin Wool, 15% Metallic Microfiber / Cupro lining",
+      "sizes": [
+        "S",
+        "M",
+        "L"
+      ],
+      "inStock": true,
+      "isFeatured": false,
+      "createdAt": 1788463856013
+    },
+    {
+      "id": "prod-6",
+      "title": "MERCURY MONOGRAM CROSSBODY",
+      "subtitle": "TITANIUM HARDWARE",
+      "price": 9800,
+      "category": "accessories",
+      "images": [
+        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?q=80&w=1000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1544816155-12df9643f363?q=80&w=1000&auto=format&fit=crop"
+      ],
+      "description": "Компактная архитектурная сумка через плечо из текстурированной серебряно-графитовой экокожи с массивной титановой пряжкой кобра и карабином быстрой фиксации.",
+      "composition": "100% Coated Microfiber Leather, Aviation Grade Titanium Buckle",
+      "sizes": [
+        "ONE SIZE"
+      ],
+      "inStock": true,
+      "isFeatured": false,
+      "createdAt": 1788462856013
+    }
+  ],
+  "settings": {
+    "brandName": "ушима",
+    "brandTagline": "AVANT-GARDE METALLIC ARCHIVE // USHIMA",
+    "announcementText": "УШИМА // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM",
+    "botUsername": "ushima_bot",
+    "currency": "₽",
+    "adminPin": "1234",
+    "contactTelegram": "ushima_manager",
+    "heroBadge": "УШИМА ARCHIVE // METALLIC ATELIER",
+    "heroTitle": "У Ш И М А.",
+    "heroSubtitle": "METALLIC SILHOUETTE.",
+    "heroDescription": "Архитектурный крой, ткани с микро-металлическим напылением холодного хрома и оружейной стали. Покупка и оплата напрямую через Telegram Mini Apps.",
+    "feature1Title": "ОПЛАТА ЧЕРЕЗ TELEGRAM БОТА",
+    "feature1Text": "Безопасная оплата картой или СБП через официальный бот бренда без лишних регистраций.",
+    "feature2Title": "ФИРМЕННЫЙ СТИЛЬ УШИМА",
+    "feature2Text": "Ограниченные тиражи, серые металлик оттенки, премиальные ткани и титановые элементы.",
+    "feature3Title": "МЕНЕДЖЕР В TELEGRAM 24/7",
+    "feature3Text": "Помощь с оформлением заказа и подбором нужного размера в Telegram: @ushima_manager"
+  },
+  "orders": [],
+  "supabaseConfig": {
+    "url": "",
+    "anonKey": "",
+    "enabled": false
+  },
+  "lastUpdated": "2026-09-03T21:02:45.257Z"
+}

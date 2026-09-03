@@ -16,6 +16,7 @@ import { AdminAuthModal } from './components/AdminAuthModal';
 import { TelegramSetupModal } from './components/TelegramSetupModal';
 import { SiteContentModal } from './components/SiteContentModal';
 import { initTelegramEnvironment, getTelegramWebApp, triggerHaptic } from './utils/telegram';
+import { api } from './services/api';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'ushima_products_v2',
@@ -72,6 +73,38 @@ export default function App() {
   const [isTelegramSetupOpen, setIsTelegramSetupOpen] = useState(false);
   const [isSiteContentOpen, setIsSiteContentOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [supabaseConfig, setSupabaseConfig] = useState<{ url?: string; anonKey?: string; enabled?: boolean }>();
+  const [isDbLoading, setIsDbLoading] = useState(false);
+
+  // Sync state with server database
+  const fetchDbData = async () => {
+    try {
+      setIsDbLoading(true);
+      const data = await api.getStoreData();
+      if (data.success) {
+        if (data.products && data.products.length > 0) {
+          setProducts(data.products);
+        }
+        if (data.settings) {
+          setSettings(data.settings);
+        }
+        if (data.orders) {
+          setOrders(data.orders);
+        }
+        if (data.supabaseConfig) {
+          setSupabaseConfig(data.supabaseConfig);
+        }
+      }
+    } catch (err) {
+      console.warn('Using local fallback state:', err);
+    } finally {
+      setIsDbLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDbData();
+  }, []);
 
   // Initialize Telegram environment
   useEffect(() => {
@@ -175,6 +208,7 @@ export default function App() {
 
   const handleOrderPlaced = (order: Order) => {
     setOrders((prev) => [order, ...prev]);
+    api.placeOrder(order).catch((err) => console.error('Error syncing order to DB:', err));
     showToast(`Заказ #${order.id} оформлен`);
   };
 
@@ -197,12 +231,14 @@ export default function App() {
       }
       return [product, ...prev];
     });
-    showToast(`Товар "${product.title}" сохранен`);
+    api.saveProduct(product).catch((err) => console.error('Error syncing product to DB:', err));
+    showToast(`Товар "${product.title}" сохранен в БД`);
   };
 
   const handleDeleteProduct = (productId: string) => {
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    api.deleteProduct(productId).catch((err) => console.error('Error deleting product from DB:', err));
     if (selectedProduct && selectedProduct.id === productId) {
       setSelectedProduct(null);
     }
@@ -210,7 +246,7 @@ export default function App() {
       setEditingProduct(null);
       setIsEditModalOpen(false);
     }
-    showToast('Товар успешно удален из каталога');
+    showToast('Товар успешно удален из базы данных');
   };
 
   const handleDuplicateProduct = (product: Product) => {
@@ -221,25 +257,33 @@ export default function App() {
       createdAt: Date.now(),
     };
     setProducts((prev) => [duplicated, ...prev]);
+    api.saveProduct(duplicated).catch((err) => console.error('Error duplicating product in DB:', err));
     showToast(`Создана копия "${product.title}"`);
   };
 
   const handleToggleStock = (productId: string) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, inStock: !p.inStock } : p))
-    );
+    setProducts((prev) => {
+      const updated = prev.map((p) => (p.id === productId ? { ...p, inStock: !p.inStock } : p));
+      const target = updated.find((p) => p.id === productId);
+      if (target) {
+        api.saveProduct(target).catch((err) => console.error('Error updating stock in DB:', err));
+      }
+      return updated;
+    });
   };
 
   const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status } : o))
     );
+    api.updateOrderStatus(orderId, status).catch((err) => console.error('Error updating status in DB:', err));
     showToast(`Статус заказа #${orderId} обновлен`);
   };
 
   const handleUpdateSettings = (newSettings: BrandSettings) => {
     setSettings(newSettings);
-    showToast('Настройки бренда сохранены');
+    api.saveSettings(newSettings).catch((err) => console.error('Error updating settings in DB:', err));
+    showToast('Настройки бренда сохранены в БД');
   };
 
   const handleExportData = () => {
@@ -271,12 +315,19 @@ export default function App() {
     showToast('Данные успешно загружены');
   };
 
-  const handleResetDefaults = () => {
-    setProducts(INITIAL_PRODUCTS);
-    setSettings(INITIAL_BRAND_SETTINGS);
-    setOrders([]);
-    setCart([]);
-    showToast('Каталог сброшен к исходному');
+  const handleResetDefaults = async () => {
+    try {
+      await api.resetData();
+      await fetchDbData();
+      setCart([]);
+      showToast('База данных сброшена к исходному каталогу');
+    } catch {
+      setProducts(INITIAL_PRODUCTS);
+      setSettings(INITIAL_BRAND_SETTINGS);
+      setOrders([]);
+      setCart([]);
+      showToast('Каталог сброшен локально');
+    }
   };
 
   const cartTotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
@@ -324,6 +375,7 @@ export default function App() {
             products={products}
             orders={orders}
             settings={settings}
+            supabaseConfig={supabaseConfig}
             onAddProduct={handleOpenAddProduct}
             onEditProduct={handleOpenEditProduct}
             onDeleteProduct={handleDeleteProduct}
@@ -334,6 +386,8 @@ export default function App() {
             onExportData={handleExportData}
             onImportData={handleImportData}
             onResetDefaults={handleResetDefaults}
+            onRefreshFromDatabase={fetchDbData}
+            showToast={showToast}
             onSwitchToClient={() => {
               triggerHaptic('light');
               setViewMode('client');
