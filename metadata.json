@@ -1,0 +1,7 @@
+{
+  "name": "ушима — Бренд одежды & TG Mini App",
+  "description": "ушима (USHIMA) — минималистичный концепт-стор одежды в холодной металлик эстетике для Telegram Mini Apps.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
