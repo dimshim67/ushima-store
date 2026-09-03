@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingBag, ShieldCheck, User, Sparkles, Send, HelpCircle } from 'lucide-react';
+import { ShoppingBag, ShieldCheck, User, Sparkles, Send, HelpCircle, RefreshCw } from 'lucide-react';
 import { BrandSettings, ViewMode } from '../types';
 import { isInsideTelegram, getTelegramUser, triggerHaptic } from '../utils/telegram';
 import { BrandLogo } from './BrandLogo';
@@ -13,6 +13,8 @@ interface HeaderProps {
   onOpenCart: () => void;
   onOpenAdminAuth: () => void;
   onOpenTelegramSetup: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -24,6 +26,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCart,
   onOpenAdminAuth,
   onOpenTelegramSetup,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   const tgUser = getTelegramUser();
   const inTelegram = isInsideTelegram();
@@ -91,6 +95,24 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right actions: Mode toggle & Cart button */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Refresh/Sync button */}
+          {onRefresh && (
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onRefresh();
+              }}
+              disabled={isRefreshing}
+              className={`p-2 rounded-lg border border-[#262c37] bg-[#14171d] text-[#94a3b8] hover:text-white hover:bg-[#1c222c] hover:border-[#38bdf8]/50 transition-all ${
+                isRefreshing ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+              title="Обновить каталог из базы данных"
+              aria-label="Обновить каталог"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#38bdf8]' : ''}`} />
+            </button>
+          )}
+
           {/* Quick TG setup button for mobile - admin only */}
           {viewMode === 'admin' && (
             <button

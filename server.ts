@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Initialize database with initial products if not yet present
 function getOrInitDatabase(): DatabaseSchema {
   let db = readDatabase();
-  if (!db || !db.products || db.products.length === 0) {
+  if (!db || !Array.isArray(db.products)) {
     db = {
       products: INITIAL_PRODUCTS,
       settings: INITIAL_BRAND_SETTINGS,

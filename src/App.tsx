@@ -77,22 +77,28 @@ export default function App() {
   const [isDbLoading, setIsDbLoading] = useState(false);
 
   // Sync state with server database
-  const fetchDbData = async () => {
+  const fetchDbData = async (showSuccessToast = false) => {
     try {
       setIsDbLoading(true);
       const data = await api.getStoreData();
       if (data.success) {
-        if (data.products && data.products.length > 0) {
+        if (Array.isArray(data.products)) {
           setProducts(data.products);
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(data.products));
         }
         if (data.settings) {
           setSettings(data.settings);
+          localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data.settings));
         }
-        if (data.orders) {
+        if (Array.isArray(data.orders)) {
           setOrders(data.orders);
+          localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(data.orders));
         }
         if (data.supabaseConfig) {
           setSupabaseConfig(data.supabaseConfig);
+        }
+        if (showSuccessToast) {
+          showToast('Каталог синхронизирован с сервером');
         }
       }
     } catch (err) {
@@ -104,6 +110,24 @@ export default function App() {
 
   useEffect(() => {
     fetchDbData();
+
+    // Re-fetch when user returns to tab or opens Telegram Mini App
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDbData();
+      }
+    };
+    const handleFocus = () => {
+      fetchDbData();
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   // Initialize Telegram environment
@@ -352,6 +376,8 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAdminAuth={() => setIsAdminAuthOpen(true)}
         onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
+        onRefresh={() => fetchDbData(true)}
+        isRefreshing={isDbLoading}
       />
 
       {/* Main View Router */}

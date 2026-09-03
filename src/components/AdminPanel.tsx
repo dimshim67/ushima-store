@@ -72,6 +72,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [savedNotice, setSavedNotice] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
+  // Keep local form in sync with settings prop when updated from server/database
+  React.useEffect(() => {
+    setLocalSettings({ ...settings });
+  }, [settings]);
+
   const filteredProducts = products.filter((p) => {
     const matchSearch =
       p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -126,6 +131,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {onRefreshFromDatabase && (
+            <button
+              onClick={() => {
+                triggerHaptic('light');
+                onRefreshFromDatabase();
+              }}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#151922] border border-[#273142] text-[#94a3b8] hover:text-white font-mono text-xs hover:border-[#38bdf8]/50 transition-colors"
+              title="Синхронизировать данные с сервером"
+            >
+              <RefreshCcw className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <span className="hidden sm:inline">Синхронизация</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenTelegramSetup}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a2333] border border-[#2b4468] text-[#38bdf8] font-mono text-xs font-semibold hover:bg-[#202d42] transition-colors"
