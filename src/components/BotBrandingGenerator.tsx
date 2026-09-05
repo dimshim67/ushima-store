@@ -108,31 +108,61 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
       ctx.closePath();
       ctx.stroke();
 
-      // Metallic Monogram / Stylized Lettering "УШИМА"
-      ctx.strokeStyle = 'rgba(215, 230, 250, 0.95)';
-      ctx.lineWidth = 4;
-      // Central vertical axis
+      // Metallic Monogram / Architectural "U" Monogram
+      ctx.save();
+      const uGrad = ctx.createLinearGradient(200, 160, 440, 430);
+      uGrad.addColorStop(0, '#ffffff');
+      uGrad.addColorStop(0.3, '#cbd5e1');
+      uGrad.addColorStop(0.65, '#64748b');
+      uGrad.addColorStop(1, '#94a3b8');
+
+      ctx.fillStyle = uGrad;
       ctx.beginPath();
-      ctx.moveTo(320, 160);
-      ctx.lineTo(320, 480);
+      // Outer U contour
+      ctx.moveTo(225, 170);
+      ctx.lineTo(275, 170);
+      ctx.lineTo(275, 345);
+      ctx.quadraticCurveTo(275, 385, 320, 385);
+      ctx.quadraticCurveTo(365, 385, 365, 345);
+      ctx.lineTo(365, 170);
+      ctx.lineTo(415, 170);
+      ctx.lineTo(415, 345);
+      ctx.quadraticCurveTo(415, 435, 320, 435);
+      ctx.quadraticCurveTo(225, 435, 225, 345);
+      ctx.closePath();
+      ctx.fill();
+
+      // Metallic chrome borders and specular glints
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.lineWidth = 3;
       ctx.stroke();
 
-      // Crossbars
+      // Left pillar specular gleam
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 3.5;
       ctx.beginPath();
-      ctx.moveTo(230, 290);
-      ctx.lineTo(410, 290);
-      ctx.moveTo(210, 370);
-      ctx.lineTo(430, 370);
+      ctx.moveTo(250, 185);
+      ctx.lineTo(250, 340);
       ctx.stroke();
 
-      // Dynamic diagonals
+      // Right pillar soft reflection
+      ctx.strokeStyle = 'rgba(203, 213, 225, 0.6)';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
-      ctx.moveTo(250, 220);
-      ctx.lineTo(320, 290);
-      ctx.lineTo(390, 220);
+      ctx.moveTo(390, 185);
+      ctx.lineTo(390, 340);
       ctx.stroke();
 
-      // Text "УШИМА" in bottom arc
+      // Horizontal tech datum connector bar
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(200, 265);
+      ctx.lineTo(440, 265);
+      ctx.stroke();
+      ctx.restore();
+
+      // Text "U S H I M A." in bottom arc
       const textGrad = ctx.createLinearGradient(0, 430, 0, 480);
       textGrad.addColorStop(0, '#ffffff');
       textGrad.addColorStop(1, '#94a3b8');
@@ -140,7 +170,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
       ctx.font = '900 24px "Space Grotesk", sans-serif';
       ctx.textAlign = 'center';
       ctx.letterSpacing = '8px';
-      ctx.fillText(settings.brandName || 'УШИМА', size / 2 + 4, 465);
+      ctx.fillText(settings.brandName || 'U S H I M A.', size / 2 + 4, 465);
 
       // Top Tag
       ctx.fillStyle = '#64748b';
@@ -220,7 +250,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
       ctx.fillText(
         assetType === 'chat_cover'
           ? 'ОФИЦИАЛЬНЫЙ МАГАЗИН // TELEGRAM'
-          : settings.heroBadge || 'УШИМА ARCHIVE // METALLIC ATELIER',
+          : settings.heroBadge || 'U S H I M A. ARCHIVE // METALLIC ATELIER',
         width / 2,
         50
       );
@@ -239,7 +269,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
       ctx.fillStyle = textGrad;
       ctx.font = '900 52px "Space Grotesk", sans-serif';
       ctx.letterSpacing = '14px';
-      ctx.fillText(settings.heroTitle || 'У Ш И М А', width / 2 + 7, 160);
+      ctx.fillText(settings.heroTitle || 'U S H I M A.', width / 2 + 7, 160);
 
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -353,7 +383,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
         body: JSON.stringify({
           menu_button: {
             type: 'web_app',
-            text: 'Каталог УШИМА 🛍️',
+            text: 'Каталог U S H I M A. 🛍️',
             web_app: { url: currentUrl },
           },
         }),
@@ -368,7 +398,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          description: `Официальный интернет-магазин авангардной одежды и мерча УШИМА 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу экрана или команду /start, чтобы открыть витрину.`,
+          description: `Официальный интернет-магазин авангардной одежды и мерча U S H I M A. 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу экрана или команду /start, чтобы открыть витрину.`,
         }),
       });
 
@@ -377,7 +407,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          short_description: `УШИМА — авангардная одежда и мерч. Каталог и онлайн-заказ в Telegram Mini App.`,
+          short_description: `U S H I M A. — авангардная одежда и мерч. Каталог и онлайн-заказ в Telegram Mini App.`,
         }),
       });
 
@@ -387,7 +417,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           commands: [
-            { command: 'start', description: 'Открыть магазин одежды УШИМА' },
+            { command: 'start', description: 'Открыть магазин одежды U S H I M A.' },
             { command: 'catalog', description: 'Каталог товаров и новинок' },
             { command: 'help', description: 'Помощь и связь с менеджером' },
           ],
@@ -397,7 +427,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
       triggerHaptic('medium');
       setApiResult({
         success: true,
-        message: `Успех! Бот @${meData.result.username} настроен! Кнопка «Каталог УШИМА 🛍️» и описания мгновенно появились в Telegram!`,
+        message: `Успех! Бот @${meData.result.username} настроен! Кнопка «Каталог U S H I M A. 🛍️» и описания мгновенно появились в Telegram!`,
       });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Не удалось связаться с сервером Telegram';
@@ -426,7 +456,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
                 Оформление бота и кнопка открытия сайта
               </h3>
               <p className="text-xs font-mono text-[#94a3b8]">
-                Чтобы бот в Telegram перестал быть пустым, настройте аватарку, описание и постоянную кнопку «Каталог УШИМА» внизу экрана.
+                Чтобы бот в Telegram перестал быть пустым, настройте аватарку, описание и постоянную кнопку «Каталог U S H I M A.» внизу экрана.
               </p>
             </div>
           </div>
@@ -475,7 +505,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
                 <div className="w-10 h-10 rounded-full overflow-hidden border border-white/20 shadow-md bg-[#090b0e] shrink-0 flex items-center justify-center">
                   <img
                     src="/telegram-avatar-640x640.png"
-                    alt="УШИМА"
+                    alt="U S H I M A."
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       // Fallback if image not yet loaded
@@ -486,7 +516,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
                 </div>
                 <div>
                   <div className="font-semibold text-xs text-white flex items-center gap-1.5">
-                    <span>УШИМА | Одежда</span>
+                    <span>U S H I M A. | Одежда</span>
                     <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8]" />
                   </div>
                   <div className="text-[10px] font-mono text-[#7a889b]">bot • @{cleanBot}</div>
@@ -518,7 +548,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
               {/* Bot Welcome Message */}
               <div className="rounded-2xl rounded-tl-sm bg-[#18202d] border border-[#2b3749] p-3 text-xs font-mono space-y-2.5 text-[#e2e8f0] shadow-md max-w-[92%]">
                 <p className="leading-relaxed">
-                  Привет! 👋 Добро пожаловать в официальный магазин авангардного бренда <strong className="text-white">УШИМА</strong> 🖤
+                  Привет! 👋 Добро пожаловать в официальный магазин авангардного бренда <strong className="text-white">U S H I M A.</strong> 🖤
                 </p>
                 <p className="text-[#94a3b8] text-[11px] leading-relaxed">
                   Здесь вы можете выбрать размеры, оформить онлайн-заказ и посмотреть лукбук прямо внутри Telegram.
@@ -533,7 +563,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
                   className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#38bdf8] to-[#0284c7] text-[#041a2f] font-bold text-xs flex items-center justify-center gap-2 hover:brightness-110 active:scale-[0.98] transition-all shadow-[0_0_18px_rgba(56,189,248,0.3)]"
                 >
                   <Sparkles className="w-4 h-4" />
-                  <span>🛒 Открыть каталог УШИМА</span>
+                  <span>🛒 Открыть каталог U S H I M A.</span>
                 </button>
               </div>
             </div>
@@ -721,7 +751,7 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
         </div>
 
         <p className="text-xs font-mono text-[#94a3b8] leading-relaxed">
-          Вставьте токен вашего бота от @BotFather (например, <code>7849123456:AAHx...</code>) и нажмите кнопку. Мы мгновенно установим системную кнопку меню «Каталог УШИМА 🛍️» и описание магазина в вашем боте через Telegram Bot API!
+          Вставьте токен вашего бота от @BotFather (например, <code>7849123456:AAHx...</code>) и нажмите кнопку. Мы мгновенно установим системную кнопку меню «Каталог U S H I M A. 🛍️» и описание магазина в вашем боте через Telegram Bot API!
         </p>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -828,10 +858,10 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
               <li>
                 Введите название кнопки:{' '}
                 <button
-                  onClick={() => handleCopy('Каталог УШИМА 🛍️', 'cmd-btn-text')}
+                  onClick={() => handleCopy('Каталог U S H I M A. 🛍️', 'cmd-btn-text')}
                   className="px-1.5 py-0.5 rounded bg-[#1e2430] text-white hover:text-white font-bold inline-flex items-center gap-1"
                 >
-                  <span>«Каталог УШИМА 🛍️»</span>
+                  <span>«Каталог U S H I M A. 🛍️»</span>
                   <Copy className="w-2.5 h-2.5" />
                 </button>
               </li>
@@ -895,12 +925,12 @@ export const BotBrandingGenerator: React.FC<BotBrandingGeneratorProps> = ({
 
             <div className="p-2.5 rounded-lg bg-[#0b0d11] border border-[#1e2430] text-[11px] text-[#94a3b8] font-mono flex items-start justify-between gap-2">
               <span className="line-clamp-3">
-                Официальный интернет-магазин авангардной одежды и мерча УШИМА 🖤 Каталог, размеры и онлайн-заказ прямо в Telegram!
+                Официальный интернет-магазин авангардной одежды и мерча U S H I M A. 🖤 Каталог, размеры и онлайн-заказ прямо в Telegram!
               </span>
               <button
                 onClick={() =>
                   handleCopy(
-                    'Официальный интернет-магазин авангардной одежды и мерча УШИМА 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу или команду /start, чтобы открыть витрину.',
+                    'Официальный интернет-магазин авангардной одежды и мерча U S H I M A. 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу или команду /start, чтобы открыть витрину.',
                     'cmd-desc'
                   )
                 }

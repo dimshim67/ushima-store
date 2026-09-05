@@ -123,7 +123,7 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
                   type="text"
                   value={formData.heroBadge || ''}
                   onChange={(e) => setFormData({ ...formData, heroBadge: e.target.value })}
-                  placeholder="УШИМА ARCHIVE // METALLIC ATELIER"
+                  placeholder="U S H I M A. ARCHIVE // METALLIC ATELIER"
                   className="w-full px-3.5 py-2 rounded-lg bg-[#14161c] border border-[#252b36] text-white text-xs font-mono focus:border-white focus:outline-none"
                 />
               </div>
@@ -210,7 +210,7 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
                   type="text"
                   value={formData.feature2Title || ''}
                   onChange={(e) => setFormData({ ...formData, feature2Title: e.target.value })}
-                  placeholder="ФИРМЕННЫЙ СТИЛЬ УШИМА"
+                  placeholder="ФИРМЕННЫЙ СТИЛЬ U S H I M A."
                   className="w-full px-3 py-1.5 rounded bg-[#0e1014] border border-[#272e3a] text-white text-xs font-mono focus:border-white focus:outline-none"
                 />
                 <textarea
@@ -257,7 +257,7 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
                   required
                   value={formData.brandName}
                   onChange={(e) => setFormData({ ...formData, brandName: e.target.value })}
-                  placeholder="ушима"
+                  placeholder="U S H I M A."
                   className="w-full px-3.5 py-2 rounded-lg bg-[#14161c] border border-[#252b36] text-white text-xs font-mono focus:border-white focus:outline-none"
                 />
               </div>
@@ -283,7 +283,7 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
                   type="text"
                   value={formData.announcementText}
                   onChange={(e) => setFormData({ ...formData, announcementText: e.target.value })}
-                  placeholder="УШИМА // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM"
+                  placeholder="U S H I M A. // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM"
                   className="w-full px-3.5 py-2 rounded-lg bg-[#14161c] border border-[#252b36] text-white text-xs font-mono focus:border-white focus:outline-none"
                 />
               </div>

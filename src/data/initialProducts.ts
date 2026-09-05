@@ -1,9 +1,9 @@
 import { Product, BrandSettings } from '../types';
 
 export const INITIAL_BRAND_SETTINGS: BrandSettings = {
-  brandName: 'ушима',
-  brandTagline: 'AVANT-GARDE METALLIC ARCHIVE // USHIMA',
-  announcementText: 'УШИМА // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM',
+  brandName: 'U S H I M A.',
+  brandTagline: 'AVANT-GARDE METALLIC ARCHIVE // U S H I M A.',
+  announcementText: 'U S H I M A. // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM',
   botUsername: 'ushima_bot',
   currency: '₽',
   adminPin: '9482',
@@ -12,15 +12,15 @@ export const INITIAL_BRAND_SETTINGS: BrandSettings = {
   contactTelegram: 'ushima_manager',
 
   // Главный экран
-  heroBadge: 'УШИМА ARCHIVE // METALLIC ATELIER',
-  heroTitle: 'У Ш И М А.',
+  heroBadge: 'U S H I M A. ARCHIVE // METALLIC ATELIER',
+  heroTitle: 'U S H I M A.',
   heroSubtitle: 'METALLIC SILHOUETTE.',
   heroDescription: 'Архитектурный крой, ткани с микро-металлическим напылением холодного хрома и оружейной стали. Покупка и оплата напрямую через Telegram Mini Apps.',
 
   // Информационные блоки
   feature1Title: 'ОПЛАТА ЧЕРЕЗ TELEGRAM БОТА',
   feature1Text: 'Безопасная оплата картой или СБП через официальный бот бренда без лишних регистраций.',
-  feature2Title: 'ФИРМЕННЫЙ СТИЛЬ УШИМА',
+  feature2Title: 'ФИРМЕННЫЙ СТИЛЬ U S H I M A.',
   feature2Text: 'Ограниченные тиражи, серые металлик оттенки, премиальные ткани и титановые элементы.',
   feature3Title: 'МЕНЕДЖЕР В TELEGRAM 24/7',
   feature3Text: 'Помощь с оформлением заказа и подбором нужного размера в Telegram: @ushima_manager',

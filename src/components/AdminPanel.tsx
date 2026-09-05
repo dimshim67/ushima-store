@@ -1069,7 +1069,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   type="text"
                   value={localSettings.heroBadge || ''}
                   onChange={(e) => setLocalSettings({ ...localSettings, heroBadge: e.target.value })}
-                  placeholder="УШИМА ARCHIVE // METALLIC ATELIER"
+                  placeholder="U S H I M A. ARCHIVE // METALLIC ATELIER"
                   className="w-full px-3.5 py-2 rounded-lg bg-[#15181f] border border-[#2b313d] text-white text-sm font-mono focus:border-white focus:outline-none"
                 />
               </div>
@@ -1146,7 +1146,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   type="text"
                   value={localSettings.feature2Title || ''}
                   onChange={(e) => setLocalSettings({ ...localSettings, feature2Title: e.target.value })}
-                  placeholder="ФИРМЕННЫЙ СТИЛЬ УШИМА"
+                  placeholder="ФИРМЕННЫЙ СТИЛЬ U S H I M A."
                   className="w-full px-3 py-1.5 rounded bg-[#0f1115] border border-[#282f3c] text-white text-xs font-mono"
                 />
                 <input

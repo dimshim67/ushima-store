@@ -71,8 +71,8 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
       return b.createdAt - a.createdAt;
     });
 
-  const heroBadge = settings.heroBadge || 'УШИМА ARCHIVE // METALLIC ATELIER';
-  const heroTitle = settings.heroTitle || 'У Ш И М А.';
+  const heroBadge = settings.heroBadge || 'U S H I M A. ARCHIVE // METALLIC ATELIER';
+  const heroTitle = settings.heroTitle || 'U S H I M A.';
   const heroSubtitle = settings.heroSubtitle || 'METALLIC SILHOUETTE.';
   const heroDescription =
     settings.heroDescription ||
@@ -255,7 +255,7 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
       <section className="pt-8 border-t border-[#1c2027] space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono text-[#64748b] uppercase tracking-wider">
-            Стандарты бренда // USHIMA ARCHIVE
+            Стандарты бренда // U S H I M A. ARCHIVE
           </span>
           {viewMode === 'admin' && onOpenSiteContentModal && (
             <button
@@ -284,7 +284,7 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
           <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c]">
             <h4 className="font-mono text-xs text-white uppercase tracking-wider font-semibold mb-1">
-              {settings.feature2Title || 'ФИРМЕННЫЙ СТИЛЬ УШИМА'}
+              {settings.feature2Title || 'ФИРМЕННЫЙ СТИЛЬ U S H I M A.'}
             </h4>
             <p className="text-[11px] font-mono text-[#717d8e] leading-relaxed">
               {settings.feature2Text || 'Ограниченные тиражи, серые металлик оттенки, премиальные ткани и титановые элементы.'}

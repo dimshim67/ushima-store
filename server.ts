@@ -582,7 +582,7 @@ app.post('/api/telegram/apply-bot-branding', async (req, res) => {
         body: JSON.stringify({
           menu_button: {
             type: 'web_app',
-            text: 'Каталог УШИМА 🛍️',
+            text: 'Каталог USHIMA 🛍️',
             web_app: { url: webAppUrl },
           },
         }),

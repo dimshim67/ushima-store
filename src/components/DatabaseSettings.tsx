@@ -405,17 +405,17 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({
           Сброс данных до начального каталога
         </h4>
         <p className="text-xs text-[#8c98a8] font-mono mb-3">
-          Если вы хотите вернуть все исходные позиции и настройки бренда УШИМА:
+          Если вы хотите вернуть все исходные позиции и настройки бренда U S H I M A.:
         </p>
         <button
           onClick={() => {
-            if (window.confirm('Сбросить базу данных до заводских товаров УШИМА?')) {
+            if (window.confirm('Сбросить базу данных до заводских товаров U S H I M A.?')) {
               onResetData();
             }
           }}
           className="px-3.5 py-2 rounded-lg bg-[#261616] hover:bg-[#381e1e] text-red-400 font-mono text-xs border border-[#4a2424] transition-colors"
         >
-          Сбросить до шаблона УШИМА
+          Сбросить до шаблона U S H I M A.
         </button>
       </div>
     </div>

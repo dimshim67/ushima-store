@@ -23,7 +23,7 @@ export const TelegramSetupModal: React.FC<TelegramSetupModalProps> = ({
   const appUrl = typeof window !== 'undefined' ? window.location.origin : 'https://ваш-сайт.com';
   const cleanBot = (settings.botUsername || 'ushima_app_bot').replace(/^@/, '');
 
-  const botCodeSnippet = `// Запуск автоответчика Telegram для УШИМА (Node.js 18+)
+  const botCodeSnippet = `// Запуск автоответчика Telegram для U S H I M A. (Node.js 18+)
 // Отвечает на /start и открывает сайт по кнопке
 
 const BOT_TOKEN = "ВАШ_ТОКЕН_ОТ_BOTFATHER";
@@ -46,11 +46,11 @@ async function start() {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 chat_id: update.message.chat.id,
-                text: "Привет! Добро пожаловать в магазин **УШИМА** 🖤\\nНажмите кнопку ниже, чтобы открыть каталог одежды:",
+                text: "Привет! Добро пожаловать в магазин **U S H I M A.** 🖤\\nНажмите кнопку ниже, чтобы открыть каталог одежды:",
                 parse_mode: "Markdown",
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: "🛒 Открыть каталог УШИМА", web_app: { url: APP_URL } }]
+                    [{ text: "🛒 Открыть каталог U S H I M A.", web_app: { url: APP_URL } }]
                   ]
                 }
               })
@@ -170,7 +170,7 @@ start();`;
                   </button>
                 </div>
                 <p className="text-xs text-[#8c98a8]">
-                  Если хотите, чтобы при нажатии <code>/start</code> бот мгновенно отправлял клиенту сообщение с инлайн-кнопкой <strong>«🛒 Открыть каталог УШИМА»</strong>:
+                  Если хотите, чтобы при нажатии <code>/start</code> бот мгновенно отправлял клиенту сообщение с инлайн-кнопкой <strong>«🛒 Открыть каталог U S H I M A.»</strong>:
                 </p>
                 <div className="p-3 rounded-lg bg-black border border-[#222b39] text-xs font-mono text-emerald-400 overflow-x-auto">
                   <code>node scripts/start_bot.js &lt;ВАШ_ТОКЕН_БОТА&gt;</code>

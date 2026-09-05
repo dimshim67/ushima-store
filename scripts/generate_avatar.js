@@ -98,15 +98,15 @@ for (let deg = 0; deg < 360; deg += 0.5) {
   setPixel(rx, ry, Math.round(brightness * 0.9), Math.round(brightness * 1.0), Math.round(brightness * 1.15));
 }
 
-// Draw stylized Japanese inspired "УШИМА" monogram / emblem
+// Draw stylized architectural "U" monogram / emblem (USHIMA)
 // Hexagon / Diamond cyber-frame
 const polyPoints = [
-  [320, 140],
-  [450, 215],
-  [450, 425],
-  [320, 500],
-  [190, 425],
-  [190, 215]
+  [320, 130],
+  [470, 215],
+  [470, 425],
+  [320, 510],
+  [170, 425],
+  [170, 215]
 ];
 
 for (let i = 0; i < polyPoints.length; i++) {
@@ -115,18 +115,31 @@ for (let i = 0; i < polyPoints.length; i++) {
   drawThickLine(p1[0], p1[1], p2[0], p2[1], 210, 225, 245, 3);
 }
 
-// Inner emblem: Stylized "У" & "Ш" geometry
-// Center vertical axis
-drawThickLine(320, 180, 320, 460, 230, 240, 255, 4);
-// Horizontal crossbars
-drawThickLine(240, 290, 400, 290, 240, 245, 255, 4);
-drawThickLine(220, 360, 420, 360, 240, 245, 255, 4);
+// Inner emblem: Architectural geometric "U"
+// Outer U shape
+drawThickLine(230, 190, 230, 360, 240, 245, 255, 5); // left outer
+drawThickLine(410, 190, 410, 360, 240, 245, 255, 5); // right outer
+drawThickLine(230, 360, 275, 430, 240, 245, 255, 5); // left bottom chamfer
+drawThickLine(410, 360, 365, 430, 240, 245, 255, 5); // right bottom chamfer
+drawThickLine(275, 430, 365, 430, 240, 245, 255, 5); // bottom bar
 
-// Angled diagonals (wing-like avantgarde form)
-drawThickLine(240, 290, 200, 390, 210, 225, 245, 3);
-drawThickLine(400, 290, 440, 390, 210, 225, 245, 3);
-drawThickLine(260, 230, 320, 290, 230, 240, 255, 3);
-drawThickLine(380, 230, 320, 290, 230, 240, 255, 3);
+// Inner U shape
+drawThickLine(280, 190, 280, 335, 210, 225, 245, 4); // left inner
+drawThickLine(360, 190, 360, 335, 210, 225, 245, 4); // right inner
+drawThickLine(280, 335, 305, 380, 210, 225, 245, 4); // left inner chamfer
+drawThickLine(360, 335, 335, 380, 210, 225, 245, 4); // right inner chamfer
+drawThickLine(305, 380, 335, 380, 210, 225, 245, 4); // inner bottom
+
+// Tops of U pillars
+drawThickLine(230, 190, 280, 190, 255, 255, 255, 4);
+drawThickLine(360, 190, 410, 190, 255, 255, 255, 4);
+
+// Horizontal tech datum bar across
+drawThickLine(200, 260, 440, 260, 56, 189, 248, 2);
+
+// Structural highlights
+drawThickLine(255, 205, 255, 350, 255, 255, 255, 2);
+drawThickLine(385, 205, 385, 350, 180, 195, 215, 2);
 
 // Corner crosshairs outside avatar
 const drawCross = (cx, cy) => {

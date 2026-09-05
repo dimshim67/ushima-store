@@ -86,9 +86,9 @@ export const BannerPreviewCanvas: React.FC<BannerPreviewProps> = ({ settings }) 
     ctx.font = '600 9px "Space Grotesk", monospace, sans-serif';
     ctx.textAlign = 'center';
     ctx.letterSpacing = '2px';
-    ctx.fillText(settings.heroBadge || 'УШИМА ARCHIVE // METALLIC ATELIER', width / 2, 50);
+    ctx.fillText(settings.heroBadge || 'U S H I M A. ARCHIVE // METALLIC ATELIER', width / 2, 50);
 
-    // Main Brand Name: "У Ш И М А" in metallic gradient
+    // Main Brand Name: "U S H I M A." in metallic gradient
     const textGrad = ctx.createLinearGradient(0, 110, 0, 190);
     textGrad.addColorStop(0, '#ffffff');
     textGrad.addColorStop(0.35, '#dbe2ec');
@@ -102,7 +102,7 @@ export const BannerPreviewCanvas: React.FC<BannerPreviewProps> = ({ settings }) 
     ctx.fillStyle = textGrad;
     ctx.font = '900 52px "Space Grotesk", sans-serif';
     ctx.letterSpacing = '14px';
-    const mainTitle = settings.heroTitle || 'У Ш И М А';
+    const mainTitle = settings.heroTitle || 'U S H I M A.';
     ctx.fillText(mainTitle, width / 2 + 7, 160);
 
     // Reset shadow

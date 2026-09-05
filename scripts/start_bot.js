@@ -1,10 +1,10 @@
 /**
- * USHIMA Apparel — Telegram Bot Auto-Setup & Start Handler
+ * U S H I M A. Apparel — Telegram Bot Auto-Setup & Start Handler
  * 
  * Данный скрипт:
- * 1. Автоматически устанавливает кнопку меню «Каталог УШИМА 🛍️» (Web App Menu Button)
+ * 1. Автоматически устанавливает кнопку меню «Каталог U S H I M A. 🛍️» (Web App Menu Button)
  * 2. Автоматически ставит описание и инфо о боте в Telegram
- * 3. Отвечает на команду /start красивым сообщением и большой кнопкой «🛒 Открыть каталог УШИМА»
+ * 3. Отвечает на команду /start красивым сообщением и большой кнопкой «🛒 Открыть каталог U S H I M A.»
  * 
  * Запуск:
  * node scripts/start_bot.js <ВАШ_ТОКЕН_ОТ_BOTFATHER> [URL_САЙТА]
@@ -16,7 +16,7 @@ const appUrl = process.argv[3] || process.env.APP_URL || 'https://ais-dev-tjevym
 if (!token) {
   console.log(`
 ======================================================
- УШИМА (USHIMA) — Telegram Bot Setup & Runner
+ U S H I M A. — Telegram Bot Setup & Runner
 ======================================================
  Ошибка: не указан токен бота!
  
@@ -50,7 +50,7 @@ async function tgCall(method, body = {}) {
 }
 
 async function setupBot() {
-  console.log(`\n Настройка бота УШИМА...`);
+  console.log(`\n Настройка бота U S H I M A....`);
   console.log(` URL приложения: ${appUrl}`);
 
   // 1. Проверяем токен
@@ -62,11 +62,11 @@ async function setupBot() {
   console.log(`✅ Бот подключен: @${me.result.username} (${me.result.first_name})`);
 
   // 2. Устанавливаем системную кнопку Menu Button (открывает сайт внизу экрана)
-  console.log(` 1. Настройка постоянной кнопки «Каталог УШИМА 🛍️» (Menu Button)...`);
+  console.log(` 1. Настройка постоянной кнопки «Каталог U S H I M A. 🛍️» (Menu Button)...`);
   const menuRes = await tgCall('setChatMenuButton', {
     menu_button: {
       type: 'web_app',
-      text: 'Каталог УШИМА 🛍️',
+      text: 'Каталог U S H I M A. 🛍️',
       web_app: { url: appUrl }
     }
   });
@@ -79,19 +79,19 @@ async function setupBot() {
   // 3. Устанавливаем описание бота (Description)
   console.log(` 2. Настройка описания бота (/setdescription)...`);
   await tgCall('setMyDescription', {
-    description: `Официальный интернет-магазин авангардной одежды и мерча УШИМА 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу или команду /start, чтобы открыть витрину.`
+    description: `Официальный интернет-магазин авангардной одежды и мерча U S H I M A. 🖤\n\n• Актуальный каталог и размеры\n• Быстрый заказ прямо в Telegram\n• Доставка по всей России\n\nНажмите кнопку внизу или команду /start, чтобы открыть витрину.`
   });
 
   // 4. Устанавливаем краткое описание (About)
   console.log(` 3. Настройка профиля (/setabouttext)...`);
   await tgCall('setMyShortDescription', {
-    short_description: `УШИМА — авангардная одежда и мерч. Каталог и онлайн-заказ в Telegram Mini App.`
+    short_description: `U S H I M A. — авангардная одежда и мерч. Каталог и онлайн-заказ в Telegram Mini App.`
   });
 
   console.log(`\n🎉 ОФОРМЛЕНИЕ И КНОПКИ БОТА УСПЕШНО НАСТРОЕНЫ!`);
   console.log(`-----------------------------------------------------`);
   console.log(`Теперь запустите бота в Telegram: https://t.me/${me.result.username}`);
-  console.log(`Внизу экрана появится постоянная кнопка «Каталог УШИМА 🛍️».`);
+  console.log(`Внизу экрана появится постоянная кнопка «Каталог U S H I M A. 🛍️».`);
   console.log(`Слушаю сообщения (Long Polling)... Нажмите Ctrl+C для выхода.`);
   console.log(`-----------------------------------------------------\n`);
 
@@ -124,7 +124,7 @@ async function handleMessage(msg) {
   if (text.startsWith('/start')) {
     console.log(`📩 Получена команда /start от @${msg.from?.username || chatId} (${userName})`);
 
-    const welcomeText = `Привет, ${userName}! 👋\n\nДобро пожаловать в официальный магазин авангардного бренда **УШИМА** 🖤\n\nЗдесь вы можете выбрать размеры, оформить заказ и примерить новинки прямо внутри Telegram.\n\n👇 **Нажмите на кнопку ниже, чтобы открыть каталог:**`;
+    const welcomeText = `Привет, ${userName}! 👋\n\nДобро пожаловать в официальный магазин авангардного бренда **U S H I M A.** 🖤\n\nЗдесь вы можете выбрать размеры, оформить заказ и примерить новинки прямо внутри Telegram.\n\n👇 **Нажмите на кнопку ниже, чтобы открыть каталог:**`;
 
     await tgCall('sendMessage', {
       chat_id: chatId,
@@ -134,7 +134,7 @@ async function handleMessage(msg) {
         inline_keyboard: [
           [
             {
-              text: '🛒 Открыть каталог УШИМА',
+              text: '🛒 Открыть каталог U S H I M A.',
               web_app: { url: appUrl }
             }
           ],
