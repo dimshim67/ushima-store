@@ -13,14 +13,12 @@ import { CartDrawer } from './components/CartDrawer';
 import { AdminPanel } from './components/AdminPanel';
 import { AdminLoginPage } from './components/AdminLoginPage';
 import { EditProductModal } from './components/EditProductModal';
-import { AdminAuthModal } from './components/AdminAuthModal';
-import { TelegramSetupModal } from './components/TelegramSetupModal';
 import { SiteContentModal } from './components/SiteContentModal';
 import { initTelegramEnvironment, getTelegramWebApp, triggerHaptic, isInsideTelegram } from './utils/telegram';
 import { api } from './services/api';
 
 const STORAGE_KEYS = {
-  PRODUCTS: 'ushima_products_v2',
+  PRODUCTS: 'ushima_products_v3',
   SETTINGS: 'ushima_settings_v2',
   ORDERS: 'ushima_orders_v2',
   CART: 'ushima_cart_v2',
@@ -48,7 +46,11 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return INITIAL_PRODUCTS;
     } catch {
       return INITIAL_PRODUCTS;
     }
@@ -98,10 +100,8 @@ export default function App() {
 
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isTelegramSetupOpen, setIsTelegramSetupOpen] = useState(false);
   const [isSiteContentOpen, setIsSiteContentOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [supabaseConfig, setSupabaseConfig] = useState<{ url?: string; anonKey?: string; enabled?: boolean }>();
@@ -317,7 +317,37 @@ export default function App() {
 
   const handleOrderPlaced = (order: Order) => {
     setOrders((prev) => [order, ...prev]);
-    api.placeOrder(order).catch((err) => console.error('Error syncing order to DB:', err));
+
+    // Deduct stock for each purchased item immediately
+    setProducts((prev) => {
+      const updated = prev.map((p) => {
+        const orderItem = order.items.find((item) => item.product.id === p.id);
+        if (!orderItem) return p;
+        const currentStock = { ...(p.sizeStock || {}) };
+        if (currentStock[orderItem.selectedSize] !== undefined) {
+          currentStock[orderItem.selectedSize] = Math.max(0, currentStock[orderItem.selectedSize] - orderItem.quantity);
+        }
+        const totalRemain = Object.values(currentStock).reduce<number>((a, b) => Number(a) + Number(b), 0);
+        return {
+          ...p,
+          sizeStock: currentStock,
+          inStock: totalRemain > 0 || Object.keys(currentStock).length === 0,
+        };
+      });
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
+      return updated;
+    });
+
+    api
+      .placeOrder(order)
+      .then((res: any) => {
+        if (res?.products && Array.isArray(res.products)) {
+          setProducts(res.products);
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(res.products));
+        }
+      })
+      .catch((err) => console.error('Error syncing order to DB:', err));
+
     showToast(`Заказ #${order.id} оформлен`);
   };
 
@@ -537,23 +567,16 @@ export default function App() {
             onToggleViewMode={() => {
               if (viewMode === 'admin') {
                 navigateTo('/');
-              } else if (isAdminAuthenticated) {
-                navigateTo('/admin');
               } else {
-                setIsAdminAuthOpen(true);
+                navigateTo('/admin');
               }
             }}
             cartCount={cartCount}
             cartTotal={cartTotal}
             onOpenCart={() => setIsCartOpen(true)}
             onOpenAdminAuth={() => {
-              if (isAdminAuthenticated) {
-                navigateTo('/admin');
-              } else {
-                setIsAdminAuthOpen(true);
-              }
+              navigateTo('/admin');
             }}
-            onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
             onRefresh={() => fetchDbData(true)}
             isRefreshing={isDbLoading}
           />
@@ -565,7 +588,6 @@ export default function App() {
                 products={products}
                 settings={settings}
                 viewMode={viewMode}
-                onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
                 onOpenSiteContentModal={() => setIsSiteContentOpen(true)}
                 onSelectProduct={(p) => setSelectedProduct(p)}
                 onQuickAddToCart={(p, size) => handleAddToCart(p, size, 1)}
@@ -573,13 +595,7 @@ export default function App() {
                 onEditProduct={handleOpenEditProduct}
                 onDeleteProduct={handleDeleteProduct}
                 onToggleStock={handleToggleStock}
-                onNavigateToAdmin={() => {
-                  if (isAdminAuthenticated) {
-                    navigateTo('/admin');
-                  } else {
-                    setIsAdminAuthOpen(true);
-                  }
-                }}
+                onResetDefaults={handleResetDefaults}
               />
             ) : (
               <AdminPanel
@@ -604,7 +620,6 @@ export default function App() {
                   triggerHaptic('light');
                   navigateTo('/');
                 }}
-                onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
                 onLogout={() => {
                   try {
                     localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
@@ -655,6 +670,7 @@ export default function App() {
             isOpen={isEditModalOpen}
             product={editingProduct}
             currency={settings.currency}
+            categories={settings.categories}
             onClose={() => {
               setIsEditModalOpen(false);
               setEditingProduct(null);
@@ -672,24 +688,6 @@ export default function App() {
               handleUpdateSettings(updated);
               showToast('Описание и тексты сайта сохранены');
             }}
-          />
-
-          {/* Admin Authentication PIN Modal (used when clicking from header/footer) */}
-          <AdminAuthModal
-            isOpen={isAdminAuthOpen}
-            adminPin={settings.adminPin}
-            onClose={() => setIsAdminAuthOpen(false)}
-            onSuccess={() => {
-              setIsAdminAuthenticated(true);
-              navigateTo('/admin');
-            }}
-          />
-
-          {/* Telegram Launch & Bot Setup Modal Guide */}
-          <TelegramSetupModal
-            isOpen={isTelegramSetupOpen}
-            settings={settings}
-            onClose={() => setIsTelegramSetupOpen(false)}
           />
         </>
       )}

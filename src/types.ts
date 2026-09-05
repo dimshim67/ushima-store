@@ -1,14 +1,22 @@
+export interface CategoryItem {
+  id: string;
+  slug: string;
+  label: string;
+}
+
 export interface Product {
   id: string;
   title: string;
+  sku?: string;
   subtitle?: string;
   price: number;
   originalPrice?: number;
-  category: 'all' | 'outerwear' | 'hoodies' | 'tees' | 'bottoms' | 'accessories';
+  category: string;
   images: string[];
   description: string;
   composition?: string;
   sizes: string[];
+  sizeStock?: Record<string, number>;
   inStock: boolean;
   isFeatured?: boolean;
   createdAt: number;
@@ -48,6 +56,9 @@ export interface BrandSettings {
   adminPassword?: string;
   adminEmails?: string[];
   contactTelegram: string;
+
+  // Категории
+  categories?: CategoryItem[];
 
   // Главный экран (Hero)
   heroBadge?: string;

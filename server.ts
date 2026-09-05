@@ -17,7 +17,7 @@ import {
   saveOrderToSupabase,
   DatabaseSchema,
 } from './server/db';
-import { INITIAL_PRODUCTS, INITIAL_BRAND_SETTINGS } from './src/data/initialProducts';
+import { INITIAL_PRODUCTS, DEMO_ARCHIVE_PRODUCTS, INITIAL_BRAND_SETTINGS } from './src/data/initialProducts';
 
 const app = express();
 const PORT = 3000;
@@ -194,15 +194,15 @@ app.post('/api/products/clear-all', async (req, res) => {
 app.post('/api/products/restore-defaults', async (req, res) => {
   try {
     const db = getOrInitDatabase();
-    db.products = INITIAL_PRODUCTS;
+    db.products = DEMO_ARCHIVE_PRODUCTS;
     writeDatabase(db);
 
     // Push defaults to Supabase if active
-    for (const p of INITIAL_PRODUCTS) {
+    for (const p of DEMO_ARCHIVE_PRODUCTS) {
       await saveProductToSupabase(p);
     }
 
-    res.json({ success: true, count: INITIAL_PRODUCTS.length, products: INITIAL_PRODUCTS });
+    res.json({ success: true, count: DEMO_ARCHIVE_PRODUCTS.length, products: DEMO_ARCHIVE_PRODUCTS });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -250,12 +250,38 @@ app.post('/api/orders', async (req, res) => {
     }
     const db = getOrInitDatabase();
     db.orders = [order, ...db.orders];
+
+    // Deduct quantity per size from product inventory
+    if (Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const prodIndex = db.products.findIndex((p) => p.id === item.product?.id);
+        if (prodIndex > -1) {
+          const product = db.products[prodIndex];
+          if (product.sizeStock && item.selectedSize && product.sizeStock[item.selectedSize] !== undefined) {
+            product.sizeStock[item.selectedSize] = Math.max(
+              0,
+              product.sizeStock[item.selectedSize] - (item.quantity || 1)
+            );
+          }
+          const totalStock = Object.values(product.sizeStock || {}).reduce(
+            (a, b) => Number(a) + Number(b),
+            0
+          );
+          if (totalStock === 0 && Object.keys(product.sizeStock || {}).length > 0) {
+            product.inStock = false;
+          }
+          db.products[prodIndex] = product;
+          await saveProductToSupabase(product);
+        }
+      }
+    }
+
     writeDatabase(db);
 
     // Sync order to Supabase
     await saveOrderToSupabase(order);
 
-    res.json({ success: true, order, count: db.orders.length });
+    res.json({ success: true, order, count: db.orders.length, products: db.products });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

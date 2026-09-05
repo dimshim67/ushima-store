@@ -16,7 +16,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showText = tr
     <div className="flex items-center gap-2.5 sm:gap-3 group cursor-pointer select-none">
       {/* Avant-garde Metallic Chrome Monogram "У" */}
       <div
-        className="relative flex items-center justify-center rounded-xl bg-gradient-to-b from-[#2a303c] via-[#161a22] to-[#0a0c0f] p-[1px] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group-hover:shadow-[0_0_20px_rgba(200,210,225,0.25)] transition-all duration-300"
+        className="relative shrink-0 flex items-center justify-center rounded-xl bg-gradient-to-b from-[#2a303c] via-[#161a22] to-[#0a0c0f] p-[1px] shadow-[0_4px_16px_rgba(0,0,0,0.7)] group-hover:shadow-[0_0_20px_rgba(200,210,225,0.25)] transition-all duration-300"
         style={{ width: iconDimensions.w + 6, height: iconDimensions.h + 6 }}
       >
         <div className="w-full h-full rounded-[11px] bg-[#0c0d10] flex items-center justify-center overflow-hidden relative">
@@ -84,14 +84,12 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({ size = 'md', showText = tr
       </div>
 
       {showText && (
-        <div className="flex flex-col">
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-display font-black text-lg sm:text-xl tracking-[0.18em] text-transparent bg-clip-text bg-gradient-to-r from-[#ffffff] via-[#e2e8f0] to-[#94a3b8] uppercase">
-              U S H I M A.
-            </span>
-          </div>
-          <span className="text-[8px] sm:text-[9px] font-mono tracking-[0.2em] text-[#6b7280] uppercase -mt-0.5">
-            METALLIC ARCHIVE // TOKYO-MOSCOW
+        <div className="flex flex-col justify-center min-w-0 select-none">
+          <span className="font-display font-black text-base sm:text-lg tracking-[0.22em] text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e2e8f0] to-[#94a3b8] uppercase whitespace-nowrap leading-none">
+            USHIMA.
+          </span>
+          <span className="text-[9px] font-mono tracking-[0.16em] text-[#64748b] uppercase mt-1 leading-none whitespace-nowrap truncate max-w-[140px] xs:max-w-[190px] sm:max-w-none">
+            METALLIC ARCHIVE // ATELIER
           </span>
         </div>
       )}

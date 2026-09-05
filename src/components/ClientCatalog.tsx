@@ -1,156 +1,276 @@
-import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Sparkles, Send, ArrowUpRight, Edit3, FileText, Image, Plus, Lock } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import {
+  Search,
+  SlidersHorizontal,
+  Edit3,
+  Send,
+  Sparkles,
+  Check,
+  ArrowUpDown,
+  ChevronDown,
+  MessageSquare,
+  PackagePlus,
+  RotateCcw,
+} from 'lucide-react';
 import { Product, ViewMode, BrandSettings } from '../types';
 import { ProductCard } from './ProductCard';
-import { triggerHaptic, isInsideTelegram } from '../utils/telegram';
+import { triggerHaptic } from '../utils/telegram';
 
 interface ClientCatalogProps {
   products: Product[];
   settings: BrandSettings;
   viewMode: ViewMode;
-  onOpenTelegramSetup: () => void;
-  onOpenSiteContentModal?: () => void;
   onSelectProduct: (product: Product) => void;
   onQuickAddToCart: (product: Product, size: string) => void;
-  onAddProduct?: () => void;
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
   onToggleStock?: (productId: string) => void;
-  onNavigateToAdmin?: () => void;
+  onOpenSiteContentModal?: () => void;
+  onAddProduct?: () => void;
+  onResetDefaults?: () => void;
 }
 
-const CATEGORIES = [
-  { id: 'all', label: 'ВСЕ ВЕЩИ' },
-  { id: 'outerwear', label: 'ВЕРХНЯЯ ОДЕЖДА' },
-  { id: 'hoodies', label: 'ХУДИ' },
-  { id: 'tees', label: 'ФУТБОЛКИ' },
-  { id: 'bottoms', label: 'БРЮКИ' },
-  { id: 'accessories', label: 'АКСЕССУАРЫ' },
-];
+type SortOption = 'featured' | 'price_asc' | 'price_desc';
+
+const SORT_CONFIG: Record<SortOption, { label: string; desc: string }> = {
+  featured: {
+    label: 'Рекомендуемые',
+    desc: 'Актуальный порядок моделей',
+  },
+  price_asc: {
+    label: 'По возрастанию цены',
+    desc: 'От доступных к премиальным',
+  },
+  price_desc: {
+    label: 'По убыванию цены',
+    desc: 'Премиальные и архивные позиции',
+  },
+};
 
 export const ClientCatalog: React.FC<ClientCatalogProps> = ({
   products,
   settings,
   viewMode,
-  onOpenTelegramSetup,
-  onOpenSiteContentModal,
   onSelectProduct,
   onQuickAddToCart,
-  onAddProduct,
   onEditProduct,
   onDeleteProduct,
   onToggleStock,
-  onNavigateToAdmin,
+  onOpenSiteContentModal,
+  onAddProduct,
+  onResetDefaults,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'featured' | 'price_asc' | 'price_desc'>('featured');
+  const [sortBy, setSortBy] = useState<SortOption>('featured');
   const [onlyInStock, setOnlyInStock] = useState(false);
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
 
-  const handleCategoryChange = (catId: string) => {
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close sorting dropdown on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setIsSortDropdownOpen(false);
+      }
+    };
+    if (isSortDropdownOpen) {
+      document.addEventListener('mousedown', handleOutsideClick);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [isSortDropdownOpen]);
+
+  // Available categories calculation
+  const availableCategories: { slug: string; label: string }[] = useMemo(() => {
+    const list: { slug: string; label: string }[] = [{ slug: 'all', label: 'ВСЕ ВЕЩИ' }];
+
+    const configured = settings.categories || [
+      { id: 'cat-1', slug: 'outerwear', label: 'ВЕРХНЯЯ ОДЕЖДА' },
+      { id: 'cat-2', slug: 'hoodies', label: 'ХУДИ' },
+      { id: 'cat-3', slug: 'tees', label: 'ФУТБОЛКИ' },
+      { id: 'cat-4', slug: 'bottoms', label: 'БРЮКИ' },
+      { id: 'cat-5', slug: 'accessories', label: 'АКСЕССУАРЫ' },
+    ];
+
+    configured.forEach((cat) => {
+      const hasItems = products.some((p) => {
+        const matchCat = p.category === cat.slug;
+        if (!matchCat) return false;
+        if (viewMode === 'admin') return true;
+        if (!p.inStock) return false;
+        if (!p.sizeStock) return true;
+        const total = Object.values(p.sizeStock).reduce<number>((a, b) => Number(a) + Number(b), 0);
+        return total > 0;
+      });
+
+      if (hasItems || viewMode === 'admin') {
+        list.push({ slug: cat.slug, label: cat.label });
+      }
+    });
+
+    return list;
+  }, [products, settings.categories, viewMode]);
+
+  const activeCategory = useMemo(() => {
+    if (selectedCategory === 'all') return 'all';
+    const exists = availableCategories.some((c) => c.slug === selectedCategory);
+    return exists ? selectedCategory : 'all';
+  }, [selectedCategory, availableCategories]);
+
+  const handleCategoryChange = (slug: string) => {
     triggerHaptic('light');
-    setSelectedCategory(catId);
+    setSelectedCategory(slug);
   };
 
+  const handleSortSelect = (option: SortOption) => {
+    triggerHaptic('light');
+    setSortBy(option);
+    setIsSortDropdownOpen(false);
+  };
+
+  const handleToggleOnlyInStock = () => {
+    triggerHaptic('light');
+    setOnlyInStock((prev) => !prev);
+  };
+
+  // Filtered & Sorted Products
   const filteredProducts = products
-    .filter((product) => {
-      const matchCat = selectedCategory === 'all' || product.category === selectedCategory;
-      const matchSearch =
-        product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.subtitle && product.subtitle.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchStock = !onlyInStock || product.inStock;
-      return matchCat && matchSearch && matchStock;
+    .filter((p) => {
+      if (viewMode !== 'admin') {
+        if (!p.inStock) return false;
+        if (p.sizeStock && Object.keys(p.sizeStock).length > 0) {
+          const totalStock = Object.values(p.sizeStock).reduce<number>((a, b) => Number(a) + Number(b), 0);
+          if (totalStock <= 0) return false;
+        }
+      }
+
+      if (activeCategory !== 'all' && p.category !== activeCategory) {
+        return false;
+      }
+
+      if (onlyInStock) {
+        if (!p.inStock) return false;
+        if (p.sizeStock) {
+          const total = Object.values(p.sizeStock).reduce<number>((a, b) => Number(a) + Number(b), 0);
+          if (total <= 0) return false;
+        }
+      }
+
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const matchTitle = p.title.toLowerCase().includes(query);
+        const matchDesc = p.description.toLowerCase().includes(query);
+        const matchSku = p.sku && p.sku.toLowerCase().includes(query);
+        return matchTitle || matchDesc || matchSku;
+      }
+
+      return true;
     })
     .sort((a, b) => {
       if (sortBy === 'price_asc') return a.price - b.price;
       if (sortBy === 'price_desc') return b.price - a.price;
-      // Default: featured first, then newest
       if (a.isFeatured && !b.isFeatured) return -1;
       if (!a.isFeatured && b.isFeatured) return 1;
       return b.createdAt - a.createdAt;
     });
 
-  const heroBadge = settings.heroBadge || 'U S H I M A. ARCHIVE // METALLIC ATELIER';
-  const heroTitle = settings.heroTitle || 'U S H I M A.';
-  const heroSubtitle = settings.heroSubtitle || 'METALLIC SILHOUETTE.';
+  const heroTitle = settings.heroTitle || 'USHIMA. ///';
+  const heroBadge = settings.heroBadge || 'USHIMA ARCHIVE // METALLIC ATELIER';
   const heroDescription =
     settings.heroDescription ||
-    'Архитектурный крой, ткани с микро-металлическим напылением холодного хрома и оружейной стали. Покупка и оплата напрямую через Telegram Mini Apps.';
+    'Концептуальный бренд одежды и аксессуаров в индастриал эстетике. Лимитированные серии, титановая фурнитура.';
+
+  const totalInStock = products.filter((p) => p.inStock).length;
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-8">
-      {/* Minimalist Metallic Editorial Hero Section */}
-      <section className="relative rounded-2xl overflow-hidden border border-[#20252e] bg-gradient-to-b from-[#14161b] via-[#0f1115] to-[#0a0b0d] p-6 sm:p-10 shadow-2xl">
-        {/* Subtle metallic sheen accent lines */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-[#ffffff]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-[#38bdf8]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-4 space-y-5">
+      {/* ========================================================================= */}
+      {/* 1. HERO BANNER: Atmospheric & Luxury on Desktop, Clean & Compact on Mobile */}
+      {/* ========================================================================= */}
+      <section className="relative rounded-2xl overflow-hidden border border-[#222834] bg-[#0c0e12] shadow-xl">
+        {/* Desktop ambient decorative lighting (Hidden on mobile) */}
+        <div className="hidden sm:block absolute -top-24 -right-24 w-96 h-96 bg-gradient-to-bl from-[#38bdf8]/10 via-[#94a3b8]/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="hidden sm:block absolute -bottom-24 -left-24 w-96 h-96 bg-gradient-to-tr from-[#64748b]/10 to-transparent rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-2xl space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1b1f28] border border-[#2c3442] text-[11px] font-mono text-[#94a3b8] tracking-widest uppercase">
-              <Sparkles className="w-3 h-3 text-[#cbd5e1]" />
-              <span>{heroBadge}</span>
+        {/* Hero Content Container */}
+        <div className="relative z-10 p-4 sm:p-7">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-[#161a22] border border-[#2a3445] text-[#38bdf8] font-mono text-[10px] font-bold tracking-widest uppercase">
+                  {heroBadge}
+                </span>
+                <span className="hidden sm:inline-flex text-[10px] font-mono text-[#64748b]">
+                  FALL/WINTER 2025
+                </span>
+              </div>
+
+              <h1 className="font-display font-black text-2xl sm:text-3xl text-white tracking-widest uppercase flex items-center gap-2">
+                <span>{heroTitle}</span>
+              </h1>
+
+              <p className="text-xs sm:text-sm text-[#94a3b8] font-mono leading-relaxed max-w-xl">
+                {heroDescription}
+              </p>
             </div>
 
-            {viewMode === 'admin' && onOpenSiteContentModal && (
-              <button
-                type="button"
-                onClick={() => {
-                  triggerHaptic('medium');
-                  onOpenSiteContentModal();
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1e232d] hover:bg-[#272e3b] border border-[#3b4556] text-[11px] font-mono text-[#cbd5e1] hover:text-white transition-colors"
-                title="Редактировать описание и тексты магазина"
-              >
-                <Edit3 className="w-3 h-3 text-[#38bdf8]" />
-                <span>Редактировать тексты сайта</span>
-              </button>
-            )}
-          </div>
+            {/* Right Status & Actions */}
+            <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+              {totalInStock > 0 && (
+                <div className="text-[11px] font-mono text-[#cbd5e1] flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#14171e] border border-[#262f3f]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{totalInStock} моделей в наличии</span>
+                </div>
+              )}
 
-          <h1 className="font-display font-black text-3xl sm:text-5xl lg:text-6xl text-white tracking-tighter leading-[1.05]">
-            {heroTitle} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#cbd5e1] via-[#94a3b8] to-[#64748b]">
-              {heroSubtitle}
-            </span>
-          </h1>
+              {settings.botUsername && (
+                <a
+                  href={`https://t.me/${settings.botUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#162130] hover:bg-[#1e2e42] border border-[#2b4260] text-[11px] font-mono text-[#38bdf8] hover:text-white transition-colors"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>@{settings.botUsername}</span>
+                </a>
+              )}
 
-          <p className="text-xs sm:text-sm text-[#8c98a8] font-mono max-w-xl leading-relaxed">
-            {heroDescription}
-          </p>
-
-          <div className="pt-2 flex flex-wrap items-center gap-2.5 sm:gap-3">
-            <a
-              href={`https://t.me/${settings.botUsername.replace(/^@/, '')}`}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)]"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>Наш Telegram: @{settings.botUsername.replace(/^@/, '')}</span>
-            </a>
-
-            <div className="w-full sm:w-auto text-[11px] font-mono text-[#6c7787] flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-lg bg-[#14171d] border border-[#222731]">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{products.filter((p) => p.inStock).length} моделей в наличии</span>
+              {viewMode === 'admin' && onOpenSiteContentModal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('medium');
+                    onOpenSiteContentModal();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1e232d] hover:bg-[#272e3b] border border-[#3b4556] text-[11px] font-mono text-[#cbd5e1] hover:text-white transition-colors"
+                  title="Редактировать тексты магазина"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-[#38bdf8]" />
+                  <span>Редактировать</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Catalog Controls: Categories, Search, Filters */}
-      <section className="space-y-4">
+      {/* ========================================================================= */}
+      {/* 2. CATALOG CONTROLS: Categories Scroll & Filter Bar                       */}
+      {/* ========================================================================= */}
+      <section className="space-y-3">
         {/* Category horizontal scroll list */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          {CATEGORIES.map((cat) => (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {availableCategories.map((cat) => (
             <button
-              key={cat.id}
-              onClick={() => handleCategoryChange(cat.id)}
-              className={`px-4 py-2 rounded-lg font-mono text-xs font-semibold tracking-wider transition-all duration-200 whitespace-nowrap ${
-                selectedCategory === cat.id
-                  ? 'bg-[#f1f5f9] text-[#090a0c] shadow-[0_0_15px_rgba(241,245,249,0.2)]'
-                  : 'bg-[#121419] text-[#8b96a7] border border-[#222731] hover:text-white hover:border-[#3b4455]'
+              key={cat.slug}
+              onClick={() => handleCategoryChange(cat.slug)}
+              className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold tracking-wider transition-all duration-200 whitespace-nowrap ${
+                activeCategory === cat.slug
+                  ? 'bg-[#f1f5f9] text-[#090a0c] shadow-[0_0_15px_rgba(241,245,249,0.2)] font-bold'
+                  : 'bg-[#111318] text-[#8b96a7] border border-[#202530] hover:text-white hover:border-[#3b4455]'
               }`}
             >
               {cat.label}
@@ -159,7 +279,7 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
         </div>
 
         {/* Filter / Search Sub-row */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           {/* Search box */}
           <div className="relative flex-1 max-w-sm">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748b]" />
@@ -167,12 +287,12 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Поиск по модели, ткани..."
-              className="w-full pl-9 pr-4 py-2 rounded-lg bg-[#121419] border border-[#222731] text-white text-xs font-mono focus:border-white focus:outline-none placeholder:text-[#525b68]"
+              placeholder="Поиск по названию, ткани..."
+              className="w-full pl-9 pr-4 py-2 rounded-xl bg-[#111318] border border-[#202530] text-white text-xs font-mono focus:border-white focus:outline-none placeholder:text-[#525b68]"
             />
           </div>
 
-          {/* Right filters: Sort & In-stock toggle */}
+          {/* Right filters: Admin add button, custom In-stock checkbox toggle & custom Sort dropdown */}
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
             {viewMode === 'admin' && onAddProduct && (
               <button
@@ -181,56 +301,204 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
                   triggerHaptic('medium');
                   onAddProduct();
                 }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#f1f5f9] text-[#090a0c] font-mono text-xs font-bold uppercase tracking-wider hover:bg-white transition-all shadow-[0_0_15px_rgba(241,245,249,0.2)]"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]"
               >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Добавить товар</span>
+                <PackagePlus className="w-3.5 h-3.5 text-black" />
+                <span>+ Добавить модель</span>
               </button>
             )}
 
-            <label className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#121419] border border-[#222731] text-xs font-mono text-[#94a3b8] cursor-pointer hover:border-[#384152] transition-colors">
-              <input
-                type="checkbox"
-                checked={onlyInStock}
-                onChange={(e) => setOnlyInStock(e.target.checked)}
-                className="w-3.5 h-3.5 rounded bg-black border-[#384152] accent-white"
-              />
-              <span>В наличии</span>
-            </label>
-
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="px-3 py-2 rounded-lg bg-[#121419] border border-[#222731] text-white text-xs font-mono focus:border-white focus:outline-none cursor-pointer"
+            {/* ============================================================= */}
+            {/* CUSTOM "В НАЛИЧИИ" TOGGLE BUTTON (Custom checkbox)           */}
+            {/* ============================================================= */}
+            <button
+              type="button"
+              role="switch"
+              aria-checked={onlyInStock}
+              onClick={handleToggleOnlyInStock}
+              className={`group flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-mono transition-all duration-200 select-none ${
+                onlyInStock
+                  ? 'bg-[#151a22] border border-emerald-500/50 text-white shadow-[0_0_15px_rgba(16,185,129,0.15)]'
+                  : 'bg-[#111318] border border-[#202530] text-[#8e9aa8] hover:text-white hover:border-[#343e50]'
+              }`}
+              title="Фильтровать товары в наличии"
             >
-              <option value="featured">Сначала рекомендуемые</option>
-              <option value="price_asc">Сначала недорогие</option>
-              <option value="price_desc">Сначала премиум</option>
-            </select>
+              {/* Custom metallic micro-switch box */}
+              <span
+                className={`relative inline-flex items-center justify-center w-4 h-4 rounded-md border transition-all duration-200 ${
+                  onlyInStock
+                    ? 'bg-emerald-400 border-emerald-400 text-black shadow-[0_0_8px_rgba(52,211,153,0.6)]'
+                    : 'bg-[#181b22] border-[#384152] text-transparent group-hover:border-[#536177]'
+                }`}
+              >
+                <Check
+                  className={`w-3 h-3 stroke-[3] transition-transform duration-150 ${
+                    onlyInStock ? 'scale-100' : 'scale-0'
+                  }`}
+                />
+              </span>
+              <span className="tracking-wide">В наличии</span>
+            </button>
+
+            {/* ============================================================= */}
+            {/* CUSTOM LUXURY SORTING DROPDOWN                                */}
+            {/* ============================================================= */}
+            <div className="relative" ref={sortMenuRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('light');
+                  setIsSortDropdownOpen((prev) => !prev);
+                }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-mono transition-all duration-200 select-none ${
+                  isSortDropdownOpen
+                    ? 'bg-[#171a22] border-white text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]'
+                    : 'bg-[#111318] border-[#202530] text-[#cbd5e1] hover:border-[#384152] hover:text-white'
+                }`}
+                aria-expanded={isSortDropdownOpen}
+                title="Сортировка каталога"
+              >
+                <ArrowUpDown className="w-3.5 h-3.5 text-[#38bdf8]" />
+                <span className="hidden xs:inline text-[#717e90]">Сортировка:</span>
+                <span className="font-semibold text-white">{SORT_CONFIG[sortBy].label}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-[#717e90] transition-transform duration-200 ${
+                    isSortDropdownOpen ? 'rotate-180 text-white' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Floating Menu Popover */}
+              {isSortDropdownOpen && (
+                <div className="absolute right-0 mt-1.5 w-60 rounded-xl border border-[#272e3d] bg-[#0f1116]/98 backdrop-blur-xl shadow-2xl p-1.5 z-40 space-y-0.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-2 py-1 text-[10px] font-mono text-[#5c687a] uppercase tracking-widest">
+                    Порядок отображения
+                  </div>
+                  {(Object.keys(SORT_CONFIG) as SortOption[]).map((key) => {
+                    const isSelected = sortBy === key;
+                    const config = SORT_CONFIG[key];
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleSortSelect(key)}
+                        className={`w-full text-left px-2.5 py-2 rounded-lg flex items-center justify-between gap-2 transition-all ${
+                          isSelected
+                            ? 'bg-[#1c222e] text-white font-semibold'
+                            : 'text-[#94a3b8] hover:bg-[#151820] hover:text-white'
+                        }`}
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-xs font-mono">{config.label}</span>
+                          <span className="text-[10px] font-mono text-[#5f6c80]">{config.desc}</span>
+                        </div>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-[#38bdf8] shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Product Grid */}
+      {/* ========================================================================= */}
+      {/* 3. PRODUCT GRID / EMPTY STATE                                            */}
+      {/* ========================================================================= */}
       <section>
         {filteredProducts.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl border border-[#20252e] bg-[#111317]">
-            <p className="font-display text-white text-base font-semibold mb-1">
-              По вашему запросу ничего не найдено
-            </p>
-            <p className="text-xs font-mono text-[#717e90] max-w-xs mx-auto mb-4">
-              Попробуйте сбросить фильтры или выбрать другую категорию
-            </p>
-            <button
-              onClick={() => {
-                setSelectedCategory('all');
-                setSearchQuery('');
-                setOnlyInStock(false);
-              }}
-              className="px-4 py-2 rounded-lg bg-[#1e232c] border border-[#303746] text-white text-xs font-mono"
-            >
-              Сбросить фильтры
-            </button>
+          <div className="p-8 sm:p-14 text-center rounded-2xl border border-[#222731] bg-[#0d0f14] space-y-4 shadow-xl">
+            {/* Minimalist Archive Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#14171f] border border-[#252c3b] text-[10px] font-mono font-bold tracking-widest text-[#94a3b8] uppercase">
+              <Sparkles className="w-3 h-3 text-[#38bdf8]" />
+              <span>USHIMA ATELIER // ARCHIVE DROP</span>
+            </div>
+
+            <div className="space-y-1.5 max-w-md mx-auto">
+              <h3 className="font-display font-bold text-white text-lg sm:text-xl tracking-wider uppercase">
+                {products.length === 0
+                  ? 'Каталог обновляется'
+                  : 'По выбранным фильтрам ничего не найдено'}
+              </h3>
+              <p className="text-xs font-mono text-[#788597] leading-relaxed">
+                {products.length === 0
+                  ? 'Новый лимитированный тираж готовится к релизу. Все прошлые архивные серии распроданы. Чтобы узнать о дате дропа или сделать индивидуальный предзаказ, свяжитесь с нами в Telegram.'
+                  : 'Попробуйте сбросить параметры поиска или фильтр наличия, чтобы увидеть все доступные позиции.'}
+              </p>
+            </div>
+
+            {/* Action buttons depending on viewMode */}
+            <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+              {products.length === 0 ? (
+                <>
+                  {settings.contactTelegram && (
+                    <a
+                      href={`https://t.me/${settings.contactTelegram}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Написать менеджеру</span>
+                    </a>
+                  )}
+
+                  {settings.botUsername && (
+                    <a
+                      href={`https://t.me/${settings.botUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#171c26] hover:bg-[#202735] border border-[#2a3447] text-white font-mono text-xs font-medium transition-colors"
+                    >
+                      <Send className="w-3.5 h-3.5 text-[#38bdf8]" />
+                      <span>Открыть бота @{settings.botUsername}</span>
+                    </a>
+                  )}
+
+                  {viewMode === 'admin' && onAddProduct && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        onAddProduct();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1e2634] hover:bg-[#283346] border border-[#3c4a63] text-white font-mono text-xs font-bold transition-colors"
+                    >
+                      <PackagePlus className="w-3.5 h-3.5 text-[#38bdf8]" />
+                      <span>+ Добавить первую модель</span>
+                    </button>
+                  )}
+
+                  {viewMode === 'admin' && onResetDefaults && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('medium');
+                        onResetDefaults();
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#14171d] hover:bg-[#1a1f27] border border-[#262c37] text-[#8e9cae] hover:text-white font-mono text-xs transition-colors"
+                      title="Загрузить тестовые образцы для проверки"
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>Загрузить тестовый архив</span>
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSearchQuery('');
+                    setOnlyInStock(false);
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#191d26] hover:bg-[#242a37] border border-[#2d3646] text-white text-xs font-mono font-medium transition-colors"
+                >
+                  Сбросить фильтры
+                </button>
+              )}
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
@@ -251,11 +519,13 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
         )}
       </section>
 
-      {/* Brand Values & Footer strip */}
-      <section className="pt-8 border-t border-[#1c2027] space-y-3">
+      {/* ========================================================================= */}
+      {/* 4. BRAND STANDARDS / EDITORIAL STRIP                                      */}
+      {/* ========================================================================= */}
+      <section className="pt-8 border-t border-[#1c2027] space-y-4">
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-mono text-[#64748b] uppercase tracking-wider">
-            Стандарты бренда // U S H I M A. ARCHIVE
+            Стандарты бренда // USHIMA ARCHIVE
           </span>
           {viewMode === 'admin' && onOpenSiteContentModal && (
             <button
@@ -272,39 +542,45 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center sm:text-left">
-          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c]">
+        {/* Feature cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c] hover:border-[#2d3544] transition-colors">
             <h4 className="font-mono text-xs text-white uppercase tracking-wider font-semibold mb-1">
               {settings.feature1Title || 'ОПЛАТА ЧЕРЕЗ TELEGRAM БОТА'}
             </h4>
             <p className="text-[11px] font-mono text-[#717d8e] leading-relaxed">
-              {settings.feature1Text || 'Безопасная оплата картой или СБП через официальный бот бренда без лишних регистраций.'}
+              {settings.feature1Text ||
+                'Безопасная оплата картой или СБП через официальный бот бренда без лишних регистраций.'}
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c]">
+          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c] hover:border-[#2d3544] transition-colors">
             <h4 className="font-mono text-xs text-white uppercase tracking-wider font-semibold mb-1">
-              {settings.feature2Title || 'ФИРМЕННЫЙ СТИЛЬ U S H I M A.'}
+              {settings.feature2Title || 'ФИРМЕННЫЙ СТИЛЬ USHIMA'}
             </h4>
             <p className="text-[11px] font-mono text-[#717d8e] leading-relaxed">
-              {settings.feature2Text || 'Ограниченные тиражи, серые металлик оттенки, премиальные ткани и титановые элементы.'}
+              {settings.feature2Text ||
+                'Ограниченные тиражи, серые металлик оттенки, премиальные ткани и титановые элементы.'}
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c]">
+          <div className="p-4 rounded-xl bg-[#101216] border border-[#1e232c] hover:border-[#2d3544] transition-colors">
             <h4 className="font-mono text-xs text-white uppercase tracking-wider font-semibold mb-1">
               {settings.feature3Title || 'МЕНЕДЖЕР В TELEGRAM 24/7'}
             </h4>
             <p className="text-[11px] font-mono text-[#717d8e] leading-relaxed">
-              {settings.feature3Text || `Помощь с оформлением заказа и подбором нужного размера в Telegram: @${settings.contactTelegram}`}
+              {settings.feature3Text ||
+                `Помощь с оформлением заказа и подбором нужного размера в Telegram: @${settings.contactTelegram}`}
             </p>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="pt-8 pb-4 text-center text-xs font-mono text-[#4b5563] border-t border-[#181c24]">
-        <p>© {new Date().getFullYear()} {settings.brandName}. Все права защищены.</p>
+      <footer className="pt-6 pb-4 text-center text-xs font-mono text-[#4b5563] border-t border-[#181c24]">
+        <p>
+          © {new Date().getFullYear()} {settings.brandName}. Все права защищены.
+        </p>
       </footer>
     </div>
   );

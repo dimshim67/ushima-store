@@ -37,7 +37,11 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   // Reset when product changes
   useEffect(() => {
     setActiveImageIndex(0);
-    setSelectedSize(product.sizes[0] || 'ONE SIZE');
+    const inStockSizes = product.sizes.filter((sz) => {
+      if (!product.sizeStock) return true;
+      return (product.sizeStock[sz] ?? 0) > 0;
+    });
+    setSelectedSize(inStockSizes[0] || product.sizes[0] || 'ONE SIZE');
     setQuantity(1);
     setIsAdded(false);
   }, [product]);
@@ -45,6 +49,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   const images = product.images.length > 0 ? product.images : [
     'https://images.unsplash.com/photo-1544441893-675973e31985?q=80&w=1000&auto=format&fit=crop',
   ];
+
+  const currentSizeStock = product.sizeStock ? (product.sizeStock[selectedSize] ?? 0) : 999;
+  const isSizeOutOfStock = currentSizeStock <= 0;
 
   const handleNextImage = () => {
     triggerHaptic('light');
@@ -57,7 +64,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
   };
 
   const handleAdd = () => {
-    if (!product.inStock) return;
+    if (!product.inStock || isSizeOutOfStock) return;
     triggerHaptic('medium');
     onAddToCart(product, selectedSize, quantity);
     setIsAdded(true);
@@ -189,27 +196,40 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 <span className="text-xs font-mono tracking-wider text-[#9ca3af] uppercase">
                   Размер:
                 </span>
-                <span className="text-[11px] font-mono text-[#64748b]">
-                  Выбран: <strong className="text-white">{selectedSize}</strong>
+                <span className="text-[11px] font-mono">
+                  {isSizeOutOfStock ? (
+                    <span className="text-rose-400 font-semibold">Размер закончился</span>
+                  ) : (
+                    <span className="text-[#64748b]">
+                      Выбран: <strong className="text-white">{selectedSize}</strong> ({currentSizeStock} шт.)
+                    </span>
+                  )}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((sz) => (
-                  <button
-                    key={sz}
-                    onClick={() => {
-                      triggerHaptic('light');
-                      setSelectedSize(sz);
-                    }}
-                    className={`min-w-[44px] h-10 px-3.5 rounded-lg font-mono text-xs font-semibold tracking-wider transition-all duration-150 ${
-                      selectedSize === sz
-                        ? 'bg-[#f1f5f9] text-[#0b0c0e] shadow-[0_0_12px_rgba(241,245,249,0.25)]'
-                        : 'bg-[#181b21] border border-[#2b313a] text-[#9ca3af] hover:text-white hover:border-[#404856]'
-                    }`}
-                  >
-                    {sz}
-                  </button>
-                ))}
+                {product.sizes.map((sz) => {
+                  const szStock = product.sizeStock ? (product.sizeStock[sz] ?? 0) : 999;
+                  const isSzOutOfStock = szStock <= 0;
+                  return (
+                    <button
+                      key={sz}
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setSelectedSize(sz);
+                        setQuantity(1);
+                      }}
+                      className={`min-w-[44px] h-10 px-3.5 rounded-lg font-mono text-xs font-semibold tracking-wider transition-all duration-150 ${
+                        selectedSize === sz
+                          ? 'bg-[#f1f5f9] text-[#0b0c0e] shadow-[0_0_12px_rgba(241,245,249,0.25)]'
+                          : isSzOutOfStock
+                          ? 'bg-[#121418] border border-[#20232a] text-[#4b5563] line-through'
+                          : 'bg-[#181b21] border border-[#2b313a] text-[#9ca3af] hover:text-white hover:border-[#404856]'
+                      }`}
+                    >
+                      {sz}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -234,11 +254,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               {/* Quantity selector */}
               <div className="flex items-center rounded-lg bg-[#16191f] border border-[#272d38] p-1">
                 <button
+                  type="button"
+                  disabled={quantity <= 1 || isSizeOutOfStock}
                   onClick={() => {
                     triggerHaptic('light');
                     setQuantity((q) => Math.max(1, q - 1));
                   }}
-                  className="w-8 h-8 flex items-center justify-center text-[#9ca3af] hover:text-white rounded hover:bg-[#20242d] transition-colors"
+                  className="w-8 h-8 flex items-center justify-center text-[#9ca3af] hover:text-white rounded hover:bg-[#20242d] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   -
                 </button>
@@ -246,11 +268,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                   {quantity}
                 </span>
                 <button
+                  type="button"
+                  disabled={quantity >= currentSizeStock || isSizeOutOfStock}
                   onClick={() => {
                     triggerHaptic('light');
-                    setQuantity((q) => q + 1);
+                    setQuantity((q) => Math.min(currentSizeStock, q + 1));
                   }}
-                  className="w-8 h-8 flex items-center justify-center text-[#9ca3af] hover:text-white rounded hover:bg-[#20242d] transition-colors"
+                  className="w-8 h-8 flex items-center justify-center text-[#9ca3af] hover:text-white rounded hover:bg-[#20242d] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   +
                 </button>
@@ -259,9 +283,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
               {/* Add to Cart button */}
               <button
                 onClick={handleAdd}
-                disabled={!product.inStock}
+                disabled={!product.inStock || isSizeOutOfStock}
                 className={`flex-1 h-11 px-4 rounded-lg font-mono text-xs tracking-wider uppercase font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
-                  !product.inStock
+                  !product.inStock || isSizeOutOfStock
                     ? 'bg-[#1e2229] text-[#52525b] cursor-not-allowed border border-[#272b33]'
                     : isAdded
                     ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.3)]'
@@ -273,6 +297,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     <Check className="w-4 h-4" />
                     <span>Добавлено в корзину</span>
                   </>
+                ) : isSizeOutOfStock ? (
+                  <span>Размер закончился</span>
                 ) : (
                   <>
                     <ShoppingBag className="w-4 h-4" />

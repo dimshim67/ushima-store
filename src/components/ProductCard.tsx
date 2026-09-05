@@ -28,7 +28,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
   const [addedAnimation, setAddedAnimation] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
-  const defaultSize = product.sizes[0] || 'OS';
+  const hasAvailableSizes = product.inStock && (
+    !product.sizeStock ||
+    Object.keys(product.sizeStock).length === 0 ||
+    Object.values(product.sizeStock).some((q) => Number(q) > 0)
+  );
+
+  const availableSizes = product.sizes.filter((sz) => {
+    if (!product.sizeStock) return true;
+    return (product.sizeStock[sz] ?? 0) > 0;
+  });
+  const defaultSize = availableSizes.length > 0 ? availableSizes[0] : (product.sizes[0] || 'OS');
 
   const handleCardClick = (e: React.MouseEvent) => {
     // If clicked on action buttons, don't open modal
@@ -39,7 +49,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!product.inStock) return;
+    if (!hasAvailableSizes) return;
     triggerHaptic('medium');
     onQuickAddToCart(product, defaultSize);
     setAddedAnimation(true);
@@ -80,7 +90,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </span>
           )}
 
-          {!product.inStock && (
+          {!hasAvailableSizes && (
             <span className="ml-auto px-2 py-0.5 rounded text-[10px] font-mono tracking-wider bg-[#ef4444]/20 border border-[#ef4444]/40 text-[#fca5a5] uppercase">
               SOLD OUT
             </span>
@@ -220,14 +230,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
           {/* Sizes preview */}
           {product.sizes && product.sizes.length > 0 && (
             <div className="flex flex-wrap items-center gap-1 mt-1.5">
-              {product.sizes.map((sz) => (
-                <span
-                  key={sz}
-                  className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#181b20] border border-[#252931] text-[#9ca3af]"
-                >
-                  {sz}
-                </span>
-              ))}
+              {product.sizes.map((sz) => {
+                const count = product.sizeStock ? product.sizeStock[sz] : undefined;
+                const isOutOfStock = count !== undefined && count === 0;
+                return (
+                  <span
+                    key={sz}
+                    className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${
+                      isOutOfStock
+                        ? 'bg-[#14161a] border-[#22252c] text-[#4b5563] line-through opacity-60'
+                        : 'bg-[#181b20] border-[#252931] text-[#9ca3af]'
+                    }`}
+                    title={count !== undefined ? `Остаток: ${count} шт.` : undefined}
+                  >
+                    {sz}
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>
