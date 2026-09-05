@@ -17,13 +17,37 @@ import { SiteContentModal } from './components/SiteContentModal';
 import { initTelegramEnvironment, getTelegramWebApp, triggerHaptic, isInsideTelegram } from './utils/telegram';
 import { api } from './services/api';
 
+const APP_CACHE_VERSION = 'v5_cleared';
 const STORAGE_KEYS = {
-  PRODUCTS: 'ushima_products_v3',
-  SETTINGS: 'ushima_settings_v2',
-  ORDERS: 'ushima_orders_v2',
+  VERSION: 'ushima_app_cache_version',
+  PRODUCTS: 'ushima_products_v5',
+  SETTINGS: 'ushima_settings_v5',
+  ORDERS: 'ushima_orders_v5',
   CART: 'ushima_cart_v2',
   ADMIN_AUTH: 'ushima_admin_auth',
 };
+
+// Auto-purge legacy client caches from previous builds
+try {
+  if (typeof window !== 'undefined') {
+    const current = localStorage.getItem(STORAGE_KEYS.VERSION);
+    if (current !== APP_CACHE_VERSION) {
+      const legacyKeys = [
+        'ushima_products_v1',
+        'ushima_products_v2',
+        'ushima_products_v3',
+        'ushima_products_v4',
+        'ushima_settings_v1',
+        'ushima_settings_v2',
+        'ushima_orders_v1',
+      ];
+      legacyKeys.forEach((k) => localStorage.removeItem(k));
+      localStorage.setItem(STORAGE_KEYS.VERSION, APP_CACHE_VERSION);
+    }
+  }
+} catch (e) {
+  console.warn('Cache purge error:', e);
+}
 
 const checkIsAdminUrl = () => {
   if (typeof window === 'undefined') return false;
@@ -42,17 +66,17 @@ const checkIsAdminUrl = () => {
 };
 
 export default function App() {
-  // 1. Core State
+  // 1. Core State (Defaults to empty catalog, never forces mock items)
   const [products, setProducts] = useState<Product[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
-      if (saved) {
+      if (saved !== null) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
-      return INITIAL_PRODUCTS;
+      return [];
     } catch {
-      return INITIAL_PRODUCTS;
+      return [];
     }
   });
 
@@ -165,6 +189,10 @@ export default function App() {
   const fetchDbData = async (showSuccessToast = false) => {
     try {
       setIsDbLoading(true);
+      if (showSuccessToast) {
+        localStorage.removeItem(STORAGE_KEYS.PRODUCTS);
+        localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+      }
       const data = await api.getStoreData();
       if (data.success) {
         if (Array.isArray(data.products)) {
@@ -183,7 +211,7 @@ export default function App() {
           setSupabaseConfig(data.supabaseConfig);
         }
         if (showSuccessToast) {
-          showToast('Каталог синхронизирован с сервером');
+          showToast('Кэш очищен, каталог синхронизирован');
         }
       }
     } catch (err) {

@@ -13,6 +13,7 @@ export const INITIAL_BRAND_SETTINGS: BrandSettings = {
   brandTagline: 'AVANT-GARDE METALLIC ARCHIVE // USHIMA',
   announcementText: '',
   botUsername: 'ushima_bot',
+  telegramChannel: 'ushima_channel',
   currency: '₽',
   adminPin: '9482',
   adminPassword: 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{',

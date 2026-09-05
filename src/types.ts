@@ -51,6 +51,7 @@ export interface BrandSettings {
   brandTagline: string;
   announcementText: string;
   botUsername: string;
+  telegramChannel?: string;
   currency: string;
   adminPin: string;
   adminPassword?: string;

@@ -288,10 +288,10 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-mono text-[#9ca3af] uppercase tracking-wider mb-1">
-                    Telegram бот для оплаты
+                    Telegram бот
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-[#64748b] font-mono text-xs">@</span>
@@ -308,7 +308,23 @@ export const SiteContentModal: React.FC<SiteContentModalProps> = ({
 
                 <div>
                   <label className="block text-xs font-mono text-[#9ca3af] uppercase tracking-wider mb-1">
-                    Telegram аккаунт менеджера
+                    Telegram канал
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-[#64748b] font-mono text-xs">@</span>
+                    <input
+                      type="text"
+                      value={(formData.telegramChannel || '').replace(/^@/, '')}
+                      onChange={(e) => setFormData({ ...formData, telegramChannel: e.target.value.replace(/^@/, '') })}
+                      placeholder="ushima_channel"
+                      className="w-full pl-7 pr-3 py-2 rounded-lg bg-[#14161c] border border-[#252b36] text-white text-xs font-mono focus:border-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-mono text-[#9ca3af] uppercase tracking-wider mb-1">
+                    Telegram менеджер
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-[#64748b] font-mono text-xs">@</span>

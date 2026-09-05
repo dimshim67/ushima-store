@@ -32,9 +32,9 @@ export const api = {
     }
 
     try {
-      const p = localStorage.getItem('ushima_products_v2');
-      const s = localStorage.getItem('ushima_settings_v2');
-      const o = localStorage.getItem('ushima_orders_v2');
+      const p = localStorage.getItem('ushima_products_v5');
+      const s = localStorage.getItem('ushima_settings_v5');
+      const o = localStorage.getItem('ushima_orders_v5');
       return {
         success: true,
         products: p ? JSON.parse(p) : [],
