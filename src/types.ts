@@ -45,6 +45,8 @@ export interface BrandSettings {
   botUsername: string;
   currency: string;
   adminPin: string;
+  adminPassword?: string;
+  adminEmails?: string[];
   contactTelegram: string;
 
   // Главный экран (Hero)

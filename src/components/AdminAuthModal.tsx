@@ -22,7 +22,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (pin === adminPin || pin === '1234') {
+    if (pin === adminPin || pin === 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{') {
       try {
         localStorage.setItem('ushima_admin_auth', 'true');
       } catch {}
@@ -35,15 +35,6 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
       setError(true);
       setPin('');
     }
-  };
-
-  const handleQuickUnlock = () => {
-    try {
-      localStorage.setItem('ushima_admin_auth', 'true');
-    } catch {}
-    triggerHaptic('success');
-    onSuccess();
-    onClose();
   };
 
   return (
@@ -60,7 +51,7 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
             Вход для владельца бренда
           </h3>
           <p className="text-xs font-mono text-[#8b95a5] mt-1">
-            Введите PIN-код для доступа к добавлению фото, редактированию цен и описаний
+            Введите PIN-код или пароль администратора для доступа
           </p>
         </div>
 
@@ -68,19 +59,18 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
           <div>
             <input
               type="password"
-              maxLength={8}
               autoFocus
               value={pin}
               onChange={(e) => {
                 setError(false);
                 setPin(e.target.value);
               }}
-              placeholder="Введите PIN (по умолч. 1234)"
-              className="w-full text-center tracking-[0.4em] font-mono text-lg py-2.5 rounded-lg bg-[#161920] border border-[#2f3645] text-white focus:border-white focus:outline-none"
+              placeholder="Введите PIN или пароль"
+              className="w-full text-center tracking-[0.2em] font-mono text-base py-2.5 rounded-lg bg-[#161920] border border-[#2f3645] text-white focus:border-white focus:outline-none"
             />
             {error && (
               <span className="text-xs font-mono text-rose-400 mt-1 block">
-                Неверный PIN-код. Попробуйте еще раз или используйте быстрый вход.
+                Неверный код доступа. Попробуйте еще раз.
               </span>
             )}
           </div>
@@ -94,14 +84,6 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
         </form>
 
         <div className="pt-2 border-t border-[#1e232c] flex flex-col gap-2">
-          <button
-            onClick={handleQuickUnlock}
-            className="text-[11px] font-mono text-[#717e90] hover:text-[#38bdf8] flex items-center justify-center gap-1.5 transition-colors"
-          >
-            <KeyRound className="w-3.5 h-3.5" />
-            <span>Быстрый вход для демонстрации (PIN: 1234)</span>
-          </button>
-
           <button
             onClick={onClose}
             className="text-xs font-mono text-[#525b68] hover:text-white"

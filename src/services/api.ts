@@ -164,4 +164,41 @@ export const api = {
     });
     return res.json();
   },
+
+  async adminLogin(credentials: { email?: string; password?: string; pin?: string }): Promise<{
+    success: boolean;
+    error?: string;
+    message?: string;
+    user?: { id?: string; email: string };
+    token?: string;
+    mode?: 'supabase' | 'local' | 'pin';
+  }> {
+    const res = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(credentials),
+    });
+    return res.json();
+  },
+
+  async getAdmins(): Promise<{ success: boolean; admins: string[]; ownerEmail: string }> {
+    const res = await fetch('/api/admin/admins');
+    return res.json();
+  },
+
+  async addAdmin(email: string): Promise<{ success: boolean; admins: string[]; error?: string }> {
+    const res = await fetch('/api/admin/admins', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return res.json();
+  },
+
+  async removeAdmin(email: string): Promise<{ success: boolean; admins: string[]; error?: string }> {
+    const res = await fetch(`/api/admin/admins/${encodeURIComponent(email)}`, {
+      method: 'DELETE',
+    });
+    return res.json();
+  },
 };

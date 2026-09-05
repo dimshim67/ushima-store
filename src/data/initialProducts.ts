@@ -6,7 +6,9 @@ export const INITIAL_BRAND_SETTINGS: BrandSettings = {
   announcementText: 'УШИМА // METALLURGIC FORM // ОФОРМЛЕНИЕ И ОПЛАТА В TELEGRAM',
   botUsername: 'ushima_bot',
   currency: '₽',
-  adminPin: '1234',
+  adminPin: '9482',
+  adminPassword: 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{',
+  adminEmails: ['dimshim67@gmail.com'],
   contactTelegram: 'ushima_manager',
 
   // Главный экран

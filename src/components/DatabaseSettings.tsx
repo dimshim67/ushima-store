@@ -50,6 +50,18 @@ create table if not exists ushima_settings (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
+create table if not exists ushima_admins (
+  id uuid default gen_random_uuid() primary key,
+  email text unique not null,
+  role text default 'admin',
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Добавить основного владельца магазина
+insert into ushima_admins (email, role)
+values ('dimshim67@gmail.com', 'owner')
+on conflict (email) do nothing;
+
 -- Разрешить чтение и запись с anon ключом приложения
 alter table ushima_products enable row level security;
 drop policy if exists "Allow all on products" on ushima_products;
@@ -62,6 +74,10 @@ create policy "Allow all on orders" on ushima_orders for all using (true) with c
 alter table ushima_settings enable row level security;
 drop policy if exists "Allow all on settings" on ushima_settings;
 create policy "Allow all on settings" on ushima_settings for all using (true) with check (true);
+
+alter table ushima_admins enable row level security;
+drop policy if exists "Allow all on admins" on ushima_admins;
+create policy "Allow all on admins" on ushima_admins for all using (true) with check (true);
 `;
 
 export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({

@@ -53,6 +53,24 @@ function getOrInitDatabase(): DatabaseSchema {
       lastUpdated: new Date().toISOString(),
     };
     writeDatabase(db);
+  } else {
+    // Ensure active admin password and owner email are up to date
+    let updated = false;
+    if (!db.settings.adminPassword || db.settings.adminPassword === 'Ushima2025!AdminSecure') {
+      db.settings.adminPassword = 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{';
+      updated = true;
+    }
+    if (db.settings.adminPin === '1234') {
+      db.settings.adminPin = '9482';
+      updated = true;
+    }
+    if (!Array.isArray(db.settings.adminEmails)) {
+      db.settings.adminEmails = ['dimshim67@gmail.com'];
+      updated = true;
+    }
+    if (updated) {
+      writeDatabase(db);
+    }
   }
   return db;
 }
@@ -361,6 +379,186 @@ app.post('/api/supabase/pull-from-cloud', async (req, res) => {
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 7.5 Admin Auth & Team Management Endpoints
+const DEFAULT_OWNER_EMAIL = 'dimshim67@gmail.com';
+
+app.post('/api/admin/login', async (req, res) => {
+  try {
+    const { email, password, pin } = req.body || {};
+    const db = getOrInitDatabase();
+
+    // 1. PIN-based login (Only strict configured adminPin)
+    if (pin) {
+      const validPin = db.settings.adminPin || '9482';
+      if (pin === validPin) {
+        res.json({
+          success: true,
+          mode: 'pin',
+          user: { email: DEFAULT_OWNER_EMAIL, role: 'owner' },
+          message: 'Авторизация по PIN-коду успешна',
+        });
+        return;
+      }
+      res.status(401).json({ success: false, error: 'Неверный PIN-код доступа' });
+      return;
+    }
+
+    // 2. Email + Password login
+    const normalizedEmail = (email || '').trim().toLowerCase();
+    if (!normalizedEmail || !password) {
+      res.status(400).json({ success: false, error: 'Укажите email и пароль' });
+      return;
+    }
+
+    // Allowed admin emails list - strictly checked
+    const adminEmails: string[] = [
+      DEFAULT_OWNER_EMAIL,
+      ...(Array.isArray(db.settings.adminEmails) ? db.settings.adminEmails : []),
+    ].map((e) => e.trim().toLowerCase());
+
+    const isAllowedEmail = adminEmails.includes(normalizedEmail);
+    if (!isAllowedEmail) {
+      res.status(403).json({
+        success: false,
+        error: 'Доступ запрещён: этот email не зарегистрирован как администратор магазина.',
+      });
+      return;
+    }
+
+    const sb = getActiveSupabaseClient();
+
+    // Check with Supabase Auth if connected
+    if (sb) {
+      try {
+        const { data: authData, error: authError } = await sb.auth.signInWithPassword({
+          email: normalizedEmail,
+          password,
+        });
+
+        if (!authError && authData.user) {
+          res.json({
+            success: true,
+            mode: 'supabase',
+            user: {
+              id: authData.user.id,
+              email: authData.user.email,
+              role: normalizedEmail === DEFAULT_OWNER_EMAIL ? 'owner' : 'admin',
+            },
+            token: authData.session?.access_token,
+            message: 'Успешный вход через Supabase Auth',
+          });
+          return;
+        }
+      } catch (err: any) {
+        console.warn('Supabase auth attempt error:', err.message);
+      }
+    }
+
+    // Master password verification
+    const masterPassword = db.settings.adminPassword || 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{';
+    const isMasterPass = password === masterPassword || password === 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{';
+
+    if (isMasterPass) {
+      res.json({
+        success: true,
+        mode: 'local',
+        user: {
+          email: normalizedEmail,
+          role: normalizedEmail === DEFAULT_OWNER_EMAIL ? 'owner' : 'admin',
+        },
+        message: 'Авторизация успешна',
+      });
+      return;
+    }
+
+    res.status(401).json({
+      success: false,
+      error: 'Неверный пароль. Доступ открыт только для владельца и добавленных администраторов.',
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Get admin team list
+app.get('/api/admin/admins', (req, res) => {
+  const db = getOrInitDatabase();
+  const rawList = Array.isArray(db.settings.adminEmails) ? db.settings.adminEmails : [];
+  const uniqueAdmins = Array.from(new Set([DEFAULT_OWNER_EMAIL, ...rawList]));
+  res.json({
+    success: true,
+    ownerEmail: DEFAULT_OWNER_EMAIL,
+    admins: uniqueAdmins,
+  });
+});
+
+// Add new admin email
+app.post('/api/admin/admins', async (req, res) => {
+  try {
+    const { email } = req.body || {};
+    const normalized = (email || '').trim().toLowerCase();
+    if (!normalized || !normalized.includes('@')) {
+      res.status(400).json({ success: false, error: 'Укажите корректный email адрес' });
+      return;
+    }
+
+    const db = getOrInitDatabase();
+    const current = Array.isArray(db.settings.adminEmails) ? db.settings.adminEmails : [];
+    if (!current.map((e: string) => e.toLowerCase()).includes(normalized)) {
+      db.settings.adminEmails = [...current, normalized];
+      writeDatabase(db);
+      await saveSettingsToSupabase(db.settings);
+
+      // Also upsert in ushima_admins table if available
+      const sb = getActiveSupabaseClient();
+      if (sb) {
+        try {
+          await sb.from('ushima_admins').upsert({ email: normalized, role: 'admin' });
+        } catch {}
+      }
+    }
+
+    const uniqueAdmins = Array.from(new Set([DEFAULT_OWNER_EMAIL, ...(db.settings.adminEmails || [])]));
+    res.json({
+      success: true,
+      admins: uniqueAdmins,
+      message: `Администратор ${normalized} добавлен. Теперь создайте пользователя с этим email в Supabase Authentication.`,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Remove admin email
+app.delete('/api/admin/admins/:email', async (req, res) => {
+  try {
+    const emailToRemove = decodeURIComponent(req.params.email || '').trim().toLowerCase();
+    if (emailToRemove === DEFAULT_OWNER_EMAIL.toLowerCase()) {
+      res.status(400).json({ success: false, error: 'Нельзя удалить главного владельца магазина' });
+      return;
+    }
+
+    const db = getOrInitDatabase();
+    const current = Array.isArray(db.settings.adminEmails) ? db.settings.adminEmails : [];
+    db.settings.adminEmails = current.filter((e: string) => e.trim().toLowerCase() !== emailToRemove);
+    writeDatabase(db);
+    await saveSettingsToSupabase(db.settings);
+
+    // Also delete from ushima_admins table in Supabase if exists
+    const sb = getActiveSupabaseClient();
+    if (sb) {
+      try {
+        await sb.from('ushima_admins').delete().eq('email', emailToRemove);
+      } catch {}
+    }
+
+    const uniqueAdmins = Array.from(new Set([DEFAULT_OWNER_EMAIL, ...(db.settings.adminEmails || [])]));
+    res.json({ success: true, admins: uniqueAdmins });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

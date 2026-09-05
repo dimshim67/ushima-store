@@ -19,11 +19,18 @@ import {
   Eye,
   Database,
   LogOut,
+  Users,
+  UserPlus,
+  Shield,
+  Key,
+  Sparkles,
+  Mail,
 } from 'lucide-react';
 import { Product, Order, BrandSettings } from '../types';
 import { triggerHaptic } from '../utils/telegram';
 import { BotBrandingGenerator } from './BotBrandingGenerator';
 import { DatabaseSettings } from './DatabaseSettings';
+import { api } from '../services/api';
 
 interface AdminPanelProps {
   products: Product[];
@@ -70,7 +77,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   showToast = (_msg: string) => {},
   onLogout,
 }) => {
-  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'telegram' | 'database' | 'settings' | 'data'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'telegram' | 'database' | 'admins' | 'settings' | 'data'>('products');
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [localSettings, setLocalSettings] = useState<BrandSettings>({ ...settings });
@@ -79,12 +86,75 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState(false);
 
+  // Admin team management state
+  const [adminList, setAdminList] = useState<string[]>(['dimshim67@gmail.com']);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [isAddingAdmin, setIsAddingAdmin] = useState(false);
+  const [currentLoggedInUser, setCurrentLoggedInUser] = useState<string>('dimshim67@gmail.com');
+
   const currentUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   // Keep local form in sync with settings prop when updated from server/database
   React.useEffect(() => {
     setLocalSettings({ ...settings });
   }, [settings]);
+
+  // Load admin list from server/Supabase
+  React.useEffect(() => {
+    api.getAdmins().then((res) => {
+      if (res.success && Array.isArray(res.admins)) {
+        setAdminList(res.admins);
+      }
+    }).catch(() => {});
+
+    try {
+      const savedUser = localStorage.getItem('ushima_admin_user');
+      if (savedUser) setCurrentLoggedInUser(savedUser);
+    } catch {}
+  }, []);
+
+  const handleAddAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = newAdminEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      showToast('Укажите корректный email адрес');
+      return;
+    }
+    setIsAddingAdmin(true);
+    try {
+      const res = await api.addAdmin(cleanEmail);
+      if (res.success) {
+        setAdminList(res.admins);
+        setNewAdminEmail('');
+        showToast(`Администратор ${cleanEmail} добавлен!`);
+      } else {
+        showToast(res.error || 'Ошибка при добавлении');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Ошибка связи с сервером');
+    } finally {
+      setIsAddingAdmin(false);
+    }
+  };
+
+  const handleRemoveAdmin = async (emailToRemove: string) => {
+    if (emailToRemove === 'dimshim67@gmail.com') {
+      showToast('Нельзя удалить главного владельца');
+      return;
+    }
+    if (!confirm(`Удалить права администратора у ${emailToRemove}?`)) return;
+    try {
+      const res = await api.removeAdmin(emailToRemove);
+      if (res.success) {
+        setAdminList(res.admins);
+        showToast(`Администратор ${emailToRemove} удален`);
+      } else {
+        showToast(res.error || 'Ошибка при удалении');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Ошибка связи с сервером');
+    }
+  };
 
   const filteredProducts = products.filter((p) => {
     const matchSearch =
@@ -332,6 +402,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <Database className="w-4 h-4 text-emerald-400" />
           <span>База данных (Supabase)</span>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        </button>
+
+        <button
+          onClick={() => {
+            triggerHaptic('light');
+            setActiveTab('admins');
+          }}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-mono text-xs font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+            activeTab === 'admins'
+              ? 'bg-[#221c2e] text-purple-400 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.2)]'
+              : 'text-[#8b96a7] hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4 text-purple-400" />
+          <span>Администраторы ({adminList.length})</span>
         </button>
 
         <button
@@ -700,7 +785,233 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         />
       )}
 
-      {/* TAB 5: BRAND SETTINGS */}
+      {/* TAB 5: ADMINS & ACCESS CONTROL */}
+      {activeTab === 'admins' && (
+        <div className="space-y-6 max-w-4xl">
+          {/* Header Card */}
+          <div className="p-5 rounded-xl bg-[#121419] border border-[#242933] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-mono text-[11px] mb-2">
+                <Shield className="w-3.5 h-3.5" />
+                <span>Supabase Authentication & Роли</span>
+              </div>
+              <h3 className="font-display font-bold text-lg text-white">
+                Управление администраторами магазина
+              </h3>
+              <p className="text-xs font-mono text-[#8b96a7] mt-1 max-w-xl leading-relaxed">
+                Добавляйте сотрудников для управления каталогом, заказами и контентом. Авторизация защищена через облачную базу Supabase.
+              </p>
+            </div>
+            <div className="p-3 rounded-lg bg-[#161922] border border-[#273244] text-xs font-mono text-[#cbd5e1] space-y-1 sm:text-right">
+              <div className="text-[10px] text-[#64748b] uppercase">Текущий вход:</div>
+              <div className="font-bold text-white flex items-center gap-1.5 sm:justify-end">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{currentLoggedInUser}</span>
+              </div>
+              <div className="text-[10px] text-purple-400">
+                {currentLoggedInUser === 'dimshim67@gmail.com' ? 'Главный владелец' : 'Администратор'}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Left Col: Admin list & Add Form */}
+            <div className="md:col-span-2 space-y-4">
+              {/* Add Admin Form */}
+              <div className="p-5 rounded-xl bg-[#121419] border border-[#242933] space-y-4">
+                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                  <UserPlus className="w-4 h-4 text-purple-400" />
+                  <span>Предоставить доступ новому администратору</span>
+                </h4>
+                <form onSubmit={handleAddAdmin} className="flex flex-col sm:flex-row gap-2.5">
+                  <div className="relative flex-1">
+                    <input
+                      type="email"
+                      required
+                      value={newAdminEmail}
+                      onChange={(e) => setNewAdminEmail(e.target.value)}
+                      placeholder="colleague@gmail.com"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-lg bg-[#161922] border border-[#2e3748] text-white text-xs font-mono focus:border-purple-400 focus:outline-none"
+                    />
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748b]">
+                      <Mail className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={isAddingAdmin}
+                    className="px-4 py-2.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isAddingAdmin ? (
+                      <span>Добавление...</span>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Добавить админа</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+                <p className="text-[11px] font-mono text-[#64748b]">
+                  После добавления email создайте пользователя в консоли Supabase (инструкция справа).
+                </p>
+              </div>
+
+              {/* Admin List */}
+              <div className="p-5 rounded-xl bg-[#121419] border border-[#242933] space-y-3">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-400" />
+                    <span>Авторизованные администраторы ({adminList.length})</span>
+                  </h4>
+                  <span className="text-[11px] font-mono text-[#64748b]">
+                    Только эти адреса имеют доступ
+                  </span>
+                </div>
+
+                <div className="space-y-2">
+                  {adminList.map((admEmail) => {
+                    const isOwner = admEmail.toLowerCase() === 'dimshim67@gmail.com';
+                    return (
+                      <div
+                        key={admEmail}
+                        className="p-3 rounded-lg bg-[#161922] border border-[#273244] flex items-center justify-between gap-3 text-xs font-mono"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
+                            isOwner ? 'bg-purple-600/20 text-purple-400 border border-purple-500/30' : 'bg-[#202735] text-[#94a3b8]'
+                          }`}>
+                            {admEmail.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-white font-semibold truncate flex items-center gap-2">
+                              <span>{admEmail}</span>
+                              {isOwner && (
+                                <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] font-normal">
+                                  Владелец
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-[#64748b]">
+                              {isOwner ? 'Полный доступ ко всем функциям и Supabase' : 'Доступ к управлению товарами и заказами'}
+                            </div>
+                          </div>
+                        </div>
+
+                        {!isOwner && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAdmin(admEmail)}
+                            className="p-2 rounded-lg bg-rose-950/20 hover:bg-rose-950/40 text-rose-400 border border-rose-800/30 transition-colors"
+                            title="Отозвать доступ"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Master Credentials Box */}
+              <div className="p-4 rounded-xl bg-[#141821] border border-[#273244] space-y-2 text-xs font-mono">
+                <div className="font-bold text-white flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-400" />
+                  <span>Мастер-пароль и аварийный доступ</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="p-2.5 rounded bg-[#181d27] border border-[#2e3748]">
+                    <div className="text-[10px] text-[#64748b] uppercase">Мастер-пароль:</div>
+                    <div className="text-amber-400 font-bold select-all">
+                      {localSettings.adminPassword || 'wdthN}D!AIE|Uxa,vSX6V6A<E8#{'}
+                    </div>
+                  </div>
+                  <div className="p-2.5 rounded bg-[#181d27] border border-[#2e3748]">
+                    <div className="text-[10px] text-[#64748b] uppercase">Резервный PIN-код:</div>
+                    <div className="text-[#38bdf8] font-bold select-all">
+                      {localSettings.adminPin || '9482'}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-[#8b95a5]">
+                  💡 Изменить мастер-пароль или PIN можно во вкладке «Настройки бренда».
+                </p>
+              </div>
+            </div>
+
+            {/* Right Col: How Supabase Auth Works */}
+            <div className="space-y-4">
+              <div className="p-5 rounded-xl bg-[#121419] border border-[#242933] space-y-4">
+                <div className="flex items-center gap-2 text-white font-mono font-bold text-xs uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4 text-purple-400" />
+                  <span>Как настроить в Supabase</span>
+                </div>
+
+                <div className="space-y-3 text-xs font-mono text-[#8b96a7] leading-relaxed">
+                  <p>
+                    Для безопасного входа с разграничением прав используется <strong className="text-white">Supabase Auth</strong>:
+                  </p>
+
+                  <div className="space-y-2 text-[11px]">
+                    <div className="p-2.5 rounded bg-[#161922] border border-[#262f40] space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px]">1</span>
+                        <span>Создайте аккаунт в Supabase</span>
+                      </div>
+                      <p className="text-[#64748b]">
+                        Перейдите в <strong>Authentication → Users</strong> в панели Supabase.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-[#161922] border border-[#262f40] space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px]">2</span>
+                        <span>Нажмите "Add user"</span>
+                      </div>
+                      <p className="text-[#64748b]">
+                        Введите email (например, <code>dimshim67@gmail.com</code>) и пароль <code>Ushima2025!AdminSecure</code>.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-[#161922] border border-[#262f40] space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px]">3</span>
+                        <span>Включите Auto Confirm</span>
+                      </div>
+                      <p className="text-[#64748b]">
+                        Поставьте галочку «Auto Confirm User», чтобы не требовалось подтверждение почты.
+                      </p>
+                    </div>
+
+                    <div className="p-2.5 rounded bg-[#161922] border border-[#262f40] space-y-1">
+                      <div className="font-bold text-white flex items-center gap-1.5">
+                        <span className="w-4 h-4 rounded-full bg-purple-600/30 text-purple-400 flex items-center justify-center text-[10px]">4</span>
+                        <span>Готово к входу</span>
+                      </div>
+                      <p className="text-[#64748b]">
+                        Теперь входите на странице <code>/admin</code> через форму Email & Пароль!
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href="https://supabase.com/dashboard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2.5 px-3 rounded-lg bg-[#1d2330] hover:bg-[#252d3d] border border-[#2f394c] text-white text-[11px] font-mono flex items-center justify-center gap-1.5 transition-colors mt-2"
+                  >
+                    <span>Открыть Supabase Dashboard</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-[#38bdf8]" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 6: BRAND SETTINGS */}
       {activeTab === 'settings' && (
         <form onSubmit={handleSaveSettings} className="p-5 rounded-xl bg-[#121419] border border-[#242933] space-y-4 max-w-2xl">
           <h3 className="font-display font-bold text-base text-white mb-2">
@@ -926,6 +1237,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
             <div>
               <label className="block text-xs font-mono text-[#9ca3af] uppercase tracking-wider mb-1">
+                Мастер-пароль администратора
+              </label>
+              <input
+                type="text"
+                value={localSettings.adminPassword || 'Ushima2025!AdminSecure'}
+                onChange={(e) => setLocalSettings({ ...localSettings, adminPassword: e.target.value })}
+                placeholder="Ushima2025!AdminSecure"
+                className="w-full px-3.5 py-2 rounded-lg bg-[#15181f] border border-[#2b313d] text-white text-sm font-mono focus:border-white focus:outline-none"
+              />
+              <span className="text-[10px] font-mono text-[#64748b] mt-1 block">
+                Для входа по email и паролю на /admin
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-mono text-[#9ca3af] uppercase tracking-wider mb-1">
                 PIN-код для входа в панель владельца
               </label>
               <input
@@ -936,7 +1263,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 className="w-full px-3.5 py-2 rounded-lg bg-[#15181f] border border-[#2b313d] text-white text-sm font-mono focus:border-white focus:outline-none"
               />
               <span className="text-[10px] font-mono text-[#64748b] mt-1 block">
-                По умолчанию: 1234
+                Резервный секретный PIN (по умолчанию: 9482)
               </span>
             </div>
           </div>
