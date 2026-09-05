@@ -23,6 +23,9 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (pin === adminPin || pin === '1234') {
+      try {
+        localStorage.setItem('ushima_admin_auth', 'true');
+      } catch {}
       triggerHaptic('success');
       setError(false);
       onSuccess();
@@ -35,6 +38,9 @@ export const AdminAuthModal: React.FC<AdminAuthModalProps> = ({
   };
 
   const handleQuickUnlock = () => {
+    try {
+      localStorage.setItem('ushima_admin_auth', 'true');
+    } catch {}
     triggerHaptic('success');
     onSuccess();
     onClose();

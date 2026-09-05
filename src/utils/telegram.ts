@@ -83,7 +83,11 @@ export const getTelegramWebApp = () => {
 
 export const isInsideTelegram = (): boolean => {
   const tg = getTelegramWebApp();
-  return Boolean(tg && (tg.initData || tg.version || tg.platform !== 'unknown'));
+  if (!tg) return false;
+  const hasInitData = typeof tg.initData === 'string' && tg.initData.trim().length > 0;
+  const platform = (tg.platform || '').toLowerCase();
+  const isTgPlatform = ['ios', 'android', 'tdesktop', 'macos', 'web', 'weba', 'webk'].includes(platform);
+  return Boolean(hasInitData || (platform && platform !== 'unknown' && isTgPlatform));
 };
 
 export const initTelegramEnvironment = () => {

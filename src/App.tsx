@@ -11,11 +11,12 @@ import { ClientCatalog } from './components/ClientCatalog';
 import { ProductModal } from './components/ProductModal';
 import { CartDrawer } from './components/CartDrawer';
 import { AdminPanel } from './components/AdminPanel';
+import { AdminLoginPage } from './components/AdminLoginPage';
 import { EditProductModal } from './components/EditProductModal';
 import { AdminAuthModal } from './components/AdminAuthModal';
 import { TelegramSetupModal } from './components/TelegramSetupModal';
 import { SiteContentModal } from './components/SiteContentModal';
-import { initTelegramEnvironment, getTelegramWebApp, triggerHaptic } from './utils/telegram';
+import { initTelegramEnvironment, getTelegramWebApp, triggerHaptic, isInsideTelegram } from './utils/telegram';
 import { api } from './services/api';
 
 const STORAGE_KEYS = {
@@ -23,6 +24,14 @@ const STORAGE_KEYS = {
   SETTINGS: 'ushima_settings_v2',
   ORDERS: 'ushima_orders_v2',
   CART: 'ushima_cart_v2',
+  ADMIN_AUTH: 'ushima_admin_auth',
+};
+
+const checkIsAdminUrl = () => {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = new URLSearchParams(window.location.search);
+  return path === '/admin' || path.startsWith('/admin/') || search.get('admin') === 'true';
 };
 
 export default function App() {
@@ -63,8 +72,21 @@ export default function App() {
     }
   });
 
+  // Admin authentication state
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
+    } catch {
+      return false;
+    }
+  });
+
   // 2. View and Modal states
-  const [viewMode, setViewMode] = useState<ViewMode>('client');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (isInsideTelegram()) return 'client';
+    return checkIsAdminUrl() ? 'admin' : 'client';
+  });
+
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAdminAuthOpen, setIsAdminAuthOpen] = useState(false);
@@ -75,6 +97,56 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [supabaseConfig, setSupabaseConfig] = useState<{ url?: string; anonKey?: string; enabled?: boolean }>();
   const [isDbLoading, setIsDbLoading] = useState(false);
+
+  // Router navigation helper
+  const navigateTo = (path: string) => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', path);
+      if (path.startsWith('/admin') || path.includes('admin=true')) {
+        setViewMode('admin');
+      } else {
+        setViewMode('client');
+      }
+    }
+  };
+
+  // Keep URL in sync with viewMode
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isInsideTelegram()) {
+      if (window.location.pathname.startsWith('/admin')) {
+        window.history.replaceState({}, '', '/');
+      }
+      return;
+    }
+
+    if (viewMode === 'admin') {
+      if (!window.location.pathname.startsWith('/admin')) {
+        window.history.pushState({}, '', '/admin');
+      }
+    } else {
+      if (window.location.pathname.startsWith('/admin')) {
+        window.history.pushState({}, '', '/');
+      }
+    }
+  }, [viewMode]);
+
+  // Handle browser back/forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      if (isInsideTelegram()) {
+        setViewMode('client');
+        return;
+      }
+      if (checkIsAdminUrl()) {
+        setViewMode('admin');
+      } else {
+        setViewMode('client');
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   // Sync state with server database
   const fetchDbData = async (showSuccessToast = false) => {
@@ -247,22 +319,36 @@ export default function App() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveProduct = (product: Product) => {
+  const handleSaveProduct = async (product: Product) => {
     setProducts((prev) => {
       const exists = prev.some((p) => p.id === product.id);
-      if (exists) {
-        return prev.map((p) => (p.id === product.id ? product : p));
-      }
-      return [product, ...prev];
+      const updated = exists ? prev.map((p) => (p.id === product.id ? product : p)) : [product, ...prev];
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
+      return updated;
     });
-    api.saveProduct(product).catch((err) => console.error('Error syncing product to DB:', err));
-    showToast(`Товар "${product.title}" сохранен в БД`);
+    try {
+      await api.saveProduct(product);
+      showToast(`Товар "${product.title}" сохранен в БД`);
+    } catch (err) {
+      console.error('Error syncing product to DB:', err);
+      showToast('Ошибка сохранения на сервере');
+    }
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts((prev) => prev.filter((p) => p.id !== productId));
+  const handleDeleteProduct = async (productId: string) => {
+    setProducts((prev) => {
+      const updated = prev.filter((p) => p.id !== productId);
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
+      return updated;
+    });
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
-    api.deleteProduct(productId).catch((err) => console.error('Error deleting product from DB:', err));
+    try {
+      await api.deleteProduct(productId);
+      showToast('Товар удален из базы данных');
+    } catch (err) {
+      console.error('Error deleting product from DB:', err);
+      showToast('Ошибка удаления на сервере');
+    }
     if (selectedProduct && selectedProduct.id === productId) {
       setSelectedProduct(null);
     }
@@ -270,44 +356,97 @@ export default function App() {
       setEditingProduct(null);
       setIsEditModalOpen(false);
     }
-    showToast('Товар успешно удален из базы данных');
   };
 
-  const handleDuplicateProduct = (product: Product) => {
+  const handleClearAllProducts = async () => {
+    setProducts([]);
+    setCart([]);
+    localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+    try {
+      await api.clearAllProducts();
+      showToast('Все карточки удалены из каталога и БД');
+    } catch (err) {
+      console.error('Error clearing products in DB:', err);
+      showToast('Ошибка очистки на сервере');
+    }
+  };
+
+  const handleRestoreDefaults = async () => {
+    try {
+      const res = await api.restoreDefaultProducts();
+      const loaded = res.products || INITIAL_PRODUCTS;
+      setProducts(loaded);
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(loaded));
+      showToast('Демо-товары восстановлены');
+    } catch (err) {
+      console.error('Error restoring defaults in DB:', err);
+      setProducts(INITIAL_PRODUCTS);
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(INITIAL_PRODUCTS));
+      showToast('Демо-товары восстановлены локально');
+    }
+  };
+
+  const handleDuplicateProduct = async (product: Product) => {
     const duplicated: Product = {
       ...product,
       id: `prod-${Date.now()}`,
       title: `${product.title} (Копия)`,
       createdAt: Date.now(),
     };
-    setProducts((prev) => [duplicated, ...prev]);
-    api.saveProduct(duplicated).catch((err) => console.error('Error duplicating product in DB:', err));
-    showToast(`Создана копия "${product.title}"`);
-  };
-
-  const handleToggleStock = (productId: string) => {
     setProducts((prev) => {
-      const updated = prev.map((p) => (p.id === productId ? { ...p, inStock: !p.inStock } : p));
-      const target = updated.find((p) => p.id === productId);
-      if (target) {
-        api.saveProduct(target).catch((err) => console.error('Error updating stock in DB:', err));
-      }
+      const updated = [duplicated, ...prev];
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
       return updated;
     });
+    try {
+      await api.saveProduct(duplicated);
+      showToast(`Создана копия "${product.title}"`);
+    } catch (err) {
+      console.error('Error duplicating product in DB:', err);
+    }
   };
 
-  const handleUpdateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status } : o))
-    );
-    api.updateOrderStatus(orderId, status).catch((err) => console.error('Error updating status in DB:', err));
-    showToast(`Статус заказа #${orderId} обновлен`);
+  const handleToggleStock = async (productId: string) => {
+    let target: Product | undefined;
+    setProducts((prev) => {
+      const updated = prev.map((p) => (p.id === productId ? { ...p, inStock: !p.inStock } : p));
+      target = updated.find((p) => p.id === productId);
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(updated));
+      return updated;
+    });
+    if (target) {
+      try {
+        await api.saveProduct(target);
+      } catch (err) {
+        console.error('Error updating stock in DB:', err);
+      }
+    }
   };
 
-  const handleUpdateSettings = (newSettings: BrandSettings) => {
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    setOrders((prev) => {
+      const updated = prev.map((o) => (o.id === orderId ? { ...o, status } : o));
+      localStorage.setItem(STORAGE_KEYS.ORDERS, JSON.stringify(updated));
+      return updated;
+    });
+    try {
+      await api.updateOrderStatus(orderId, status);
+      showToast(`Статус заказа #${orderId} обновлен`);
+    } catch (err) {
+      console.error('Error updating status in DB:', err);
+    }
+  };
+
+  const handleUpdateSettings = async (newSettings: BrandSettings) => {
     setSettings(newSettings);
-    api.saveSettings(newSettings).catch((err) => console.error('Error updating settings in DB:', err));
-    showToast('Настройки бренда сохранены в БД');
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+    try {
+      await api.saveSettings(newSettings);
+      showToast('Настройки и описание сохранены в БД');
+    } catch (err) {
+      console.error('Error updating settings in DB:', err);
+      showToast('Ошибка сохранения настроек на сервере');
+    }
   };
 
   const handleExportData = () => {
@@ -366,134 +505,181 @@ export default function App() {
         </div>
       )}
 
-      {/* Global Header */}
-      <Header
-        settings={settings}
-        viewMode={viewMode}
-        onToggleViewMode={() => setViewMode(viewMode === 'admin' ? 'client' : 'admin')}
-        cartCount={cartCount}
-        cartTotal={cartTotal}
-        onOpenCart={() => setIsCartOpen(true)}
-        onOpenAdminAuth={() => setIsAdminAuthOpen(true)}
-        onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
-        onRefresh={() => fetchDbData(true)}
-        isRefreshing={isDbLoading}
-      />
-
-      {/* Main View Router */}
-      <main className="flex-1 pb-16">
-        {viewMode === 'client' ? (
-          <ClientCatalog
-            products={products}
+      {/* When in admin mode and not authenticated, show the full-screen AdminLoginPage */}
+      {viewMode === 'admin' && !isAdminAuthenticated ? (
+        <AdminLoginPage
+          onSuccess={() => {
+            setIsAdminAuthenticated(true);
+            showToast('Авторизация успешна. Добро пожаловать!');
+          }}
+          onBackToClient={() => navigateTo('/')}
+          expectedPin={settings.adminPin}
+        />
+      ) : (
+        <>
+          {/* Global Header */}
+          <Header
             settings={settings}
             viewMode={viewMode}
-            onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
-            onOpenSiteContentModal={() => setIsSiteContentOpen(true)}
-            onSelectProduct={(p) => setSelectedProduct(p)}
-            onQuickAddToCart={(p, size) => handleAddToCart(p, size, 1)}
-            onAddProduct={handleOpenAddProduct}
-            onEditProduct={handleOpenEditProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onToggleStock={handleToggleStock}
-          />
-        ) : (
-          <AdminPanel
-            products={products}
-            orders={orders}
-            settings={settings}
-            supabaseConfig={supabaseConfig}
-            onAddProduct={handleOpenAddProduct}
-            onEditProduct={handleOpenEditProduct}
-            onDeleteProduct={handleDeleteProduct}
-            onDuplicateProduct={handleDuplicateProduct}
-            onToggleStock={handleToggleStock}
-            onUpdateOrderStatus={handleUpdateOrderStatus}
-            onUpdateSettings={handleUpdateSettings}
-            onExportData={handleExportData}
-            onImportData={handleImportData}
-            onResetDefaults={handleResetDefaults}
-            onRefreshFromDatabase={fetchDbData}
-            showToast={showToast}
-            onSwitchToClient={() => {
-              triggerHaptic('light');
-              setViewMode('client');
+            onToggleViewMode={() => {
+              if (viewMode === 'admin') {
+                navigateTo('/');
+              } else if (isAdminAuthenticated) {
+                navigateTo('/admin');
+              } else {
+                setIsAdminAuthOpen(true);
+              }
+            }}
+            cartCount={cartCount}
+            cartTotal={cartTotal}
+            onOpenCart={() => setIsCartOpen(true)}
+            onOpenAdminAuth={() => {
+              if (isAdminAuthenticated) {
+                navigateTo('/admin');
+              } else {
+                setIsAdminAuthOpen(true);
+              }
             }}
             onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
+            onRefresh={() => fetchDbData(true)}
+            isRefreshing={isDbLoading}
           />
-        )}
-      </main>
 
-      {/* Product Detail Modal (for customers or owner inspecting details) */}
-      <ProductModal
-        product={selectedProduct}
-        currency={settings.currency}
-        botUsername={settings.botUsername}
-        viewMode={viewMode}
-        onClose={() => setSelectedProduct(null)}
-        onAddToCart={handleAddToCart}
-        onDirectOrder={(p, size) => {
-          handleAddToCart(p, size, 1);
-          setSelectedProduct(null);
-          setIsCartOpen(true);
-        }}
-        onEdit={(p) => {
-          setSelectedProduct(null);
-          handleOpenEditProduct(p);
-        }}
-        onDelete={handleDeleteProduct}
-      />
+          {/* Main View Router */}
+          <main className="flex-1 pb-16">
+            {viewMode === 'client' ? (
+              <ClientCatalog
+                products={products}
+                settings={settings}
+                viewMode={viewMode}
+                onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
+                onOpenSiteContentModal={() => setIsSiteContentOpen(true)}
+                onSelectProduct={(p) => setSelectedProduct(p)}
+                onQuickAddToCart={(p, size) => handleAddToCart(p, size, 1)}
+                onAddProduct={handleOpenAddProduct}
+                onEditProduct={handleOpenEditProduct}
+                onDeleteProduct={handleDeleteProduct}
+                onToggleStock={handleToggleStock}
+                onNavigateToAdmin={() => {
+                  if (isAdminAuthenticated) {
+                    navigateTo('/admin');
+                  } else {
+                    setIsAdminAuthOpen(true);
+                  }
+                }}
+              />
+            ) : (
+              <AdminPanel
+                products={products}
+                orders={orders}
+                settings={settings}
+                supabaseConfig={supabaseConfig}
+                onAddProduct={handleOpenAddProduct}
+                onEditProduct={handleOpenEditProduct}
+                onDeleteProduct={handleDeleteProduct}
+                onDuplicateProduct={handleDuplicateProduct}
+                onToggleStock={handleToggleStock}
+                onUpdateOrderStatus={handleUpdateOrderStatus}
+                onUpdateSettings={handleUpdateSettings}
+                onExportData={handleExportData}
+                onImportData={handleImportData}
+                onResetDefaults={handleRestoreDefaults}
+                onClearAllProducts={handleClearAllProducts}
+                onRefreshFromDatabase={fetchDbData}
+                showToast={showToast}
+                onSwitchToClient={() => {
+                  triggerHaptic('light');
+                  navigateTo('/');
+                }}
+                onOpenTelegramSetup={() => setIsTelegramSetupOpen(true)}
+                onLogout={() => {
+                  try {
+                    localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+                  } catch {}
+                  setIsAdminAuthenticated(false);
+                  showToast('Вы вышли из админ-панели');
+                  navigateTo('/');
+                }}
+              />
+            )}
+          </main>
 
-      {/* Shopping Cart Drawer */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cart}
-        currency={settings.currency}
-        botUsername={settings.botUsername}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
-        onClearCart={handleClearCart}
-        onOrderPlaced={handleOrderPlaced}
-      />
+          {/* Product Detail Modal (for customers or owner inspecting details) */}
+          <ProductModal
+            product={selectedProduct}
+            currency={settings.currency}
+            botUsername={settings.botUsername}
+            viewMode={viewMode}
+            onClose={() => setSelectedProduct(null)}
+            onAddToCart={handleAddToCart}
+            onDirectOrder={(p, size) => {
+              handleAddToCart(p, size, 1);
+              setSelectedProduct(null);
+              setIsCartOpen(true);
+            }}
+            onEdit={(p) => {
+              setSelectedProduct(null);
+              handleOpenEditProduct(p);
+            }}
+            onDelete={handleDeleteProduct}
+          />
 
-      {/* Admin Edit / Add Product Modal */}
-      <EditProductModal
-        isOpen={isEditModalOpen}
-        product={editingProduct}
-        currency={settings.currency}
-        onClose={() => {
-          setIsEditModalOpen(false);
-          setEditingProduct(null);
-        }}
-        onSave={handleSaveProduct}
-        onDelete={handleDeleteProduct}
-      />
+          {/* Shopping Cart Drawer */}
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            items={cart}
+            currency={settings.currency}
+            botUsername={settings.botUsername}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            onClearCart={handleClearCart}
+            onOrderPlaced={handleOrderPlaced}
+          />
 
-      {/* Site Content & Description Editor Modal */}
-      <SiteContentModal
-        isOpen={isSiteContentOpen}
-        settings={settings}
-        onClose={() => setIsSiteContentOpen(false)}
-        onSave={(updated) => {
-          handleUpdateSettings(updated);
-          showToast('Описание и тексты сайта сохранены');
-        }}
-      />
+          {/* Admin Edit / Add Product Modal */}
+          <EditProductModal
+            isOpen={isEditModalOpen}
+            product={editingProduct}
+            currency={settings.currency}
+            onClose={() => {
+              setIsEditModalOpen(false);
+              setEditingProduct(null);
+            }}
+            onSave={handleSaveProduct}
+            onDelete={handleDeleteProduct}
+          />
 
-      {/* Admin Authentication PIN Modal */}
-      <AdminAuthModal
-        isOpen={isAdminAuthOpen}
-        adminPin={settings.adminPin}
-        onClose={() => setIsAdminAuthOpen(false)}
-        onSuccess={() => setViewMode('admin')}
-      />
+          {/* Site Content & Description Editor Modal */}
+          <SiteContentModal
+            isOpen={isSiteContentOpen}
+            settings={settings}
+            onClose={() => setIsSiteContentOpen(false)}
+            onSave={(updated) => {
+              handleUpdateSettings(updated);
+              showToast('Описание и тексты сайта сохранены');
+            }}
+          />
 
-      {/* Telegram Launch & Bot Setup Modal Guide */}
-      <TelegramSetupModal
-        isOpen={isTelegramSetupOpen}
-        settings={settings}
-        onClose={() => setIsTelegramSetupOpen(false)}
-      />
+          {/* Admin Authentication PIN Modal (used when clicking from header/footer) */}
+          <AdminAuthModal
+            isOpen={isAdminAuthOpen}
+            adminPin={settings.adminPin}
+            onClose={() => setIsAdminAuthOpen(false)}
+            onSuccess={() => {
+              setIsAdminAuthenticated(true);
+              navigateTo('/admin');
+            }}
+          />
+
+          {/* Telegram Launch & Bot Setup Modal Guide */}
+          <TelegramSetupModal
+            isOpen={isTelegramSetupOpen}
+            settings={settings}
+            onClose={() => setIsTelegramSetupOpen(false)}
+          />
+        </>
+      )}
     </div>
   );
 }

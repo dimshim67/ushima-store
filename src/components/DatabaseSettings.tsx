@@ -17,7 +17,7 @@ interface DatabaseSettingsProps {
 }
 
 const SUPABASE_SQL_SCHEMA = `-- USHIMA STORE // SUPABASE SQL SCHEMA
--- Выполните этот скрипт в Supabase SQL Editor (1 клик):
+-- Выполните этот скрипт в Supabase -> SQL Editor (1 клик 'Run'):
 
 create table if not exists ushima_products (
   id text primary key,
@@ -41,7 +41,7 @@ create table if not exists ushima_orders (
   total_amount numeric not null,
   status text not null,
   customer_info jsonb not null,
-  created_at bigint
+  created_at text
 );
 
 create table if not exists ushima_settings (
@@ -50,10 +50,18 @@ create table if not exists ushima_settings (
   updated_at timestamp with time zone default timezone('utc'::text, now())
 );
 
--- Открытие публичного доступа на чтение каталога
+-- Разрешить чтение и запись с anon ключом приложения
 alter table ushima_products enable row level security;
-create policy "Public products read" on ushima_products for select using (true);
-create policy "Public products insert" on ushima_products for all using (true);
+drop policy if exists "Allow all on products" on ushima_products;
+create policy "Allow all on products" on ushima_products for all using (true) with check (true);
+
+alter table ushima_orders enable row level security;
+drop policy if exists "Allow all on orders" on ushima_orders;
+create policy "Allow all on orders" on ushima_orders for all using (true) with check (true);
+
+alter table ushima_settings enable row level security;
+drop policy if exists "Allow all on settings" on ushima_settings;
+create policy "Allow all on settings" on ushima_settings for all using (true) with check (true);
 `;
 
 export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({
@@ -70,6 +78,43 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isCopiedSql, setIsCopiedSql] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPushingCloud, setIsPushingCloud] = useState(false);
+  const [isPullingCloud, setIsPullingCloud] = useState(false);
+
+  const handlePushToCloud = async () => {
+    triggerHaptic('medium');
+    setIsPushingCloud(true);
+    try {
+      const res = await api.pushToSupabase();
+      if (res.success) {
+        showToast(res.message);
+      } else {
+        showToast(res.message || 'Ошибка выгрузки в Supabase');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Ошибка соединения с сервером');
+    } finally {
+      setIsPushingCloud(false);
+    }
+  };
+
+  const handlePullFromCloud = async () => {
+    triggerHaptic('medium');
+    setIsPullingCloud(true);
+    try {
+      const res = await api.pullFromSupabase();
+      if (res.success) {
+        await onRefreshData();
+        showToast(res.message);
+      } else {
+        showToast(res.message || 'Ошибка загрузки из Supabase');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Ошибка соединения с сервером');
+    } finally {
+      setIsPullingCloud(false);
+    }
+  };
 
   const handleTestConnection = async () => {
     if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
@@ -272,6 +317,28 @@ export const DatabaseSettings: React.FC<DatabaseSettingsProps> = ({
             >
               Сохранить ключи
             </button>
+
+            {initialConfig?.enabled && (
+              <>
+                <button
+                  onClick={handlePushToCloud}
+                  disabled={isPushingCloud}
+                  className="px-3.5 py-2 rounded-lg bg-[#15233b] hover:bg-[#1d3154] text-[#38bdf8] font-mono text-xs border border-[#2b4b7c] transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>{isPushingCloud ? 'Выгрузка...' : 'Выгрузить товары в Supabase'}</span>
+                </button>
+
+                <button
+                  onClick={handlePullFromCloud}
+                  disabled={isPullingCloud}
+                  className="px-3.5 py-2 rounded-lg bg-[#121c2c] hover:bg-[#19273e] text-white font-mono text-xs border border-[#243754] transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-[#38bdf8] ${isPullingCloud ? 'animate-spin' : ''}`} />
+                  <span>{isPullingCloud ? 'Загрузка...' : 'Загрузить из Supabase'}</span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* Test connection result banner */}

@@ -15,7 +15,13 @@ export interface StoreDataResponse {
 
 export const api = {
   async getStoreData(): Promise<StoreDataResponse> {
-    const res = await fetch('/api/data');
+    const res = await fetch(`/api/data?_t=${Date.now()}`, {
+      cache: 'no-store',
+      headers: {
+        'Pragma': 'no-cache',
+        'Cache-Control': 'no-cache, no-store',
+      },
+    });
     if (!res.ok) {
       throw new Error(`Server returned ${res.status}`);
     }
@@ -23,7 +29,7 @@ export const api = {
   },
 
   async saveProduct(product: Product): Promise<{ success: boolean; product: Product }> {
-    const res = await fetch('/api/products', {
+    const res = await fetch(`/api/products?_t=${Date.now()}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(product),
@@ -35,11 +41,31 @@ export const api = {
   },
 
   async deleteProduct(id: string): Promise<{ success: boolean }> {
-    const res = await fetch(`/api/products/${id}`, {
+    const res = await fetch(`/api/products/${id}?_t=${Date.now()}`, {
       method: 'DELETE',
     });
     if (!res.ok) {
       throw new Error(`Failed to delete product: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async clearAllProducts(): Promise<{ success: boolean; count: number }> {
+    const res = await fetch(`/api/products/clear-all?_t=${Date.now()}`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to clear products: ${res.status}`);
+    }
+    return res.json();
+  },
+
+  async restoreDefaultProducts(): Promise<{ success: boolean; products: Product[] }> {
+    const res = await fetch(`/api/products/restore-defaults?_t=${Date.now()}`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to restore default products: ${res.status}`);
     }
     return res.json();
   },
@@ -104,6 +130,22 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config),
+    });
+    return res.json();
+  },
+
+  async pushToSupabase(): Promise<{ success: boolean; message: string; productsPushed?: number }> {
+    const res = await fetch('/api/supabase/push-to-cloud', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return res.json();
+  },
+
+  async pullFromSupabase(): Promise<{ success: boolean; message: string; products?: any[]; settings?: any }> {
+    const res = await fetch('/api/supabase/pull-from-cloud', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
     });
     return res.json();
   },

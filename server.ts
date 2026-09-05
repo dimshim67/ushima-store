@@ -2,7 +2,21 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
-import { readDatabase, writeDatabase, testSupabaseConnection, getSupabaseClient, DatabaseSchema } from './server/db';
+import {
+  readDatabase,
+  writeDatabase,
+  testSupabaseConnection,
+  getSupabaseClient,
+  getActiveSupabaseClient,
+  getProductsWithSupabase,
+  saveProductToSupabase,
+  deleteProductFromSupabase,
+  clearAllProductsInSupabase,
+  getSettingsWithSupabase,
+  saveSettingsToSupabase,
+  saveOrderToSupabase,
+  DatabaseSchema,
+} from './server/db';
 import { INITIAL_PRODUCTS, INITIAL_BRAND_SETTINGS } from './src/data/initialProducts';
 
 const app = express();
@@ -11,6 +25,17 @@ const PORT = 3000;
 // Increase payload limit for base64 image uploads from catalog admin
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Anti-cache headers for all API requests to prevent Telegram Webview & browser stale caching
+app.use('/api', (req, res, next) => {
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store',
+  });
+  next();
+});
 
 // Initialize database with initial products if not yet present
 function getOrInitDatabase(): DatabaseSchema {
@@ -33,27 +58,42 @@ function getOrInitDatabase(): DatabaseSchema {
 }
 
 // 1. Health check & DB status
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
   const db = getOrInitDatabase();
+  const sbClient = getActiveSupabaseClient();
   res.json({
     status: 'ok',
     productsCount: db.products.length,
     ordersCount: db.orders.length,
+    supabaseActive: Boolean(sbClient),
     supabaseConfigured: Boolean(db.supabaseConfig?.url && db.supabaseConfig?.anonKey),
     lastUpdated: db.lastUpdated,
   });
 });
 
 // 2. Get full store data (products, settings, orders)
-app.get('/api/data', (req, res) => {
+app.get('/api/data', async (req, res) => {
   try {
     const db = getOrInitDatabase();
+    
+    // Sync with Supabase if connected
+    const products = await getProductsWithSupabase(db);
+    const settings = await getSettingsWithSupabase(db);
+    
+    // Keep local cache up to date
+    if (products !== db.products) {
+      db.products = products;
+      db.settings = settings;
+      writeDatabase(db);
+    }
+
     res.json({
       success: true,
-      products: db.products,
-      settings: db.settings,
+      products,
+      settings,
       orders: db.orders,
       supabaseConfig: db.supabaseConfig || {},
+      supabaseActive: Boolean(getActiveSupabaseClient()),
       lastUpdated: db.lastUpdated,
     });
   } catch (err: any) {
@@ -62,12 +102,17 @@ app.get('/api/data', (req, res) => {
 });
 
 // 3. Products Endpoints
-app.get('/api/products', (req, res) => {
-  const db = getOrInitDatabase();
-  res.json({ success: true, products: db.products });
+app.get('/api/products', async (req, res) => {
+  try {
+    const db = getOrInitDatabase();
+    const products = await getProductsWithSupabase(db);
+    res.json({ success: true, products });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/products', (req, res) => {
+app.post('/api/products', async (req, res) => {
   try {
     const product = req.body;
     if (!product || !product.id || !product.title) {
@@ -85,36 +130,87 @@ app.post('/api/products', (req, res) => {
     }
 
     writeDatabase(db);
+
+    // Also persist to Supabase if connected
+    await saveProductToSupabase(product);
+
     res.json({ success: true, product, count: db.products.length });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.delete('/api/products/:id', (req, res) => {
+app.delete('/api/products/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const db = getOrInitDatabase();
     db.products = db.products.filter((p) => p.id !== id);
     writeDatabase(db);
+
+    // Also delete from Supabase if connected
+    await deleteProductFromSupabase(id);
+
     res.json({ success: true, count: db.products.length });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 4. Settings Endpoints
-app.get('/api/settings', (req, res) => {
-  const db = getOrInitDatabase();
-  res.json({ success: true, settings: db.settings });
+// Clear all products (start with blank catalog)
+app.post('/api/products/clear-all', async (req, res) => {
+  try {
+    const db = getOrInitDatabase();
+    db.products = [];
+    writeDatabase(db);
+
+    // Also clear in Supabase if connected
+    await clearAllProductsInSupabase();
+
+    res.json({ success: true, count: 0, message: 'Каталог очищен' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
-app.post('/api/settings', (req, res) => {
+// Restore default demo products
+app.post('/api/products/restore-defaults', async (req, res) => {
+  try {
+    const db = getOrInitDatabase();
+    db.products = INITIAL_PRODUCTS;
+    writeDatabase(db);
+
+    // Push defaults to Supabase if active
+    for (const p of INITIAL_PRODUCTS) {
+      await saveProductToSupabase(p);
+    }
+
+    res.json({ success: true, count: INITIAL_PRODUCTS.length, products: INITIAL_PRODUCTS });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. Settings Endpoints
+app.get('/api/settings', async (req, res) => {
+  try {
+    const db = getOrInitDatabase();
+    const settings = await getSettingsWithSupabase(db);
+    res.json({ success: true, settings });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/settings', async (req, res) => {
   try {
     const newSettings = req.body;
     const db = getOrInitDatabase();
     db.settings = { ...db.settings, ...newSettings };
     writeDatabase(db);
+
+    // Sync settings to Supabase
+    await saveSettingsToSupabase(db.settings);
+
     res.json({ success: true, settings: db.settings });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -127,7 +223,7 @@ app.get('/api/orders', (req, res) => {
   res.json({ success: true, orders: db.orders });
 });
 
-app.post('/api/orders', (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const order = req.body;
     if (!order || !order.id) {
@@ -137,6 +233,10 @@ app.post('/api/orders', (req, res) => {
     const db = getOrInitDatabase();
     db.orders = [order, ...db.orders];
     writeDatabase(db);
+
+    // Sync order to Supabase
+    await saveOrderToSupabase(order);
+
     res.json({ success: true, order, count: db.orders.length });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
@@ -205,6 +305,62 @@ app.post('/api/supabase/config', (req, res) => {
     res.json({ success: true, config: db.supabaseConfig });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Push all local products & settings into Supabase
+app.post('/api/supabase/push-to-cloud', async (req, res) => {
+  try {
+    const sb = getActiveSupabaseClient();
+    if (!sb) {
+      res.status(400).json({ success: false, message: 'Supabase не подключен. Сначала укажите URL и Anon Key.' });
+      return;
+    }
+
+    const db = getOrInitDatabase();
+    let pushedProducts = 0;
+    for (const prod of db.products) {
+      const ok = await saveProductToSupabase(prod);
+      if (ok) pushedProducts++;
+    }
+
+    await saveSettingsToSupabase(db.settings);
+
+    res.json({
+      success: true,
+      message: `Успешно выгружено в Supabase: ${pushedProducts} товаров и настройки бренда`,
+      productsPushed: pushedProducts,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Pull all products & settings from Supabase into local cache
+app.post('/api/supabase/pull-from-cloud', async (req, res) => {
+  try {
+    const sb = getActiveSupabaseClient();
+    if (!sb) {
+      res.status(400).json({ success: false, message: 'Supabase не подключен. Сначала укажите URL и Anon Key.' });
+      return;
+    }
+
+    const db = getOrInitDatabase();
+    const products = await getProductsWithSupabase(db);
+    const settings = await getSettingsWithSupabase(db);
+
+    db.products = products;
+    db.settings = settings;
+    writeDatabase(db);
+
+    res.json({
+      success: true,
+      message: `Загружено из Supabase: ${products.length} товаров`,
+      products,
+      settings,
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

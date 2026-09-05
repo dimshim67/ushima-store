@@ -18,6 +18,7 @@ import {
   Layers,
   Eye,
   Database,
+  LogOut,
 } from 'lucide-react';
 import { Product, Order, BrandSettings } from '../types';
 import { triggerHaptic } from '../utils/telegram';
@@ -39,10 +40,12 @@ interface AdminPanelProps {
   onExportData: () => void;
   onImportData: (data: any) => void;
   onResetDefaults: () => void;
+  onClearAllProducts?: () => void;
   onSwitchToClient: () => void;
   onOpenTelegramSetup: () => void;
   onRefreshFromDatabase?: () => Promise<void>;
   showToast?: (msg: string) => void;
+  onLogout?: () => void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({
@@ -60,10 +63,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onExportData,
   onImportData,
   onResetDefaults,
+  onClearAllProducts,
   onSwitchToClient,
   onOpenTelegramSetup,
   onRefreshFromDatabase = async () => {},
-  showToast = () => {},
+  showToast = (_msg: string) => {},
+  onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'orders' | 'telegram' | 'database' | 'settings' | 'data'>('products');
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +76,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [localSettings, setLocalSettings] = useState<BrandSettings>({ ...settings });
   const [savedNotice, setSavedNotice] = useState(false);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const currentUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   // Keep local form in sync with settings prop when updated from server/database
   React.useEffect(() => {
@@ -155,11 +164,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
           <button
             onClick={onSwitchToClient}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white text-black font-mono text-xs font-bold uppercase tracking-wider hover:bg-[#e2e8f0] transition-all shadow-[0_0_15px_rgba(255,255,255,0.15)]"
+            title="Открыть витрину магазина (вид покупателя)"
           >
             <Eye className="w-4 h-4" />
-            <span>Посмотреть как клиент</span>
+            <span className="hidden sm:inline">Витрина клиента</span>
+            <span className="sm:hidden">Витрина</span>
           </button>
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg bg-[#191d24] hover:bg-rose-500/20 text-[#8c98a8] hover:text-rose-400 border border-[#2b3341] hover:border-rose-500/30 transition-colors"
+              title="Выйти из админ-панели"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -197,6 +218,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           <div className="flex items-center gap-1.5 font-mono text-xs text-[#38bdf8] truncate font-medium">
             <Send className="w-3 h-3 flex-shrink-0" />
             <span className="truncate">@{settings.botUsername}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Telegram Sync & Diagnostics Banner */}
+      <div className="p-4 rounded-xl bg-[#10141d] border border-[#1e293b] space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+              Синхронизация с Telegram Mini App
+            </span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              БД АКТИВНА
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(currentUrl);
+                setCopiedUrl(true);
+                showToast('Ссылка на магазин скопирована для @BotFather');
+                setTimeout(() => setCopiedUrl(false), 2000);
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#182234] hover:bg-[#202f47] border border-[#2b4468] text-[#38bdf8] font-mono text-xs font-semibold transition-colors"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              <span>{copiedUrl ? 'Скопировано!' : 'Скопировать URL для @BotFather'}</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono text-[#8b96a7]">
+          <div className="p-3 rounded-lg bg-[#0c0e14] border border-[#1a2130] space-y-1">
+            <div className="text-white font-semibold flex items-center gap-1.5">
+              <span>📍 1. Ссылка вашего приложения</span>
+            </div>
+            <p className="text-[11px] break-all text-[#38bdf8]">{currentUrl}</p>
+            <p className="text-[11px] text-[#6b7280]">
+              Убедитесь, что в боте в @BotFather через команду <span className="text-white">/newapp</span> или <span className="text-white">/setmenubutton</span> указана именно эта ссылка.
+            </p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-[#0c0e14] border border-[#1a2130] space-y-1">
+            <div className="text-white font-semibold flex items-center gap-1.5">
+              <span>⚡ 2. Если в Telegram старые данные (Кэш)</span>
+            </div>
+            <p className="text-[11px] text-[#94a3b8]">
+              Telegram кэширует страницы внутри приложения. Чтобы обновить:
+            </p>
+            <p className="text-[11px] text-amber-300">
+              В Telegram нажмите три точки <span className="text-white font-bold">⋮</span> в правом верхнем углу → <span className="underline">«Перезагрузить страницу»</span> (или кнопку 🔄 в шапке).
+            </p>
           </div>
         </div>
       </div>
@@ -311,16 +386,64 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </select>
             </div>
 
-            <button
-              onClick={() => {
-                triggerHaptic('medium');
-                onAddProduct();
-              }}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#f1f5f9] text-[#090a0c] font-mono text-xs font-bold uppercase tracking-wider hover:bg-white transition-all shadow-[0_0_15px_rgba(241,245,249,0.2)]"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Добавить новый товар</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              {products.length > 0 && onClearAllProducts && (
+                showClearConfirm ? (
+                  <div className="flex items-center gap-1.5 p-1 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <span className="text-[11px] font-mono text-red-300 px-2">Удалить все {products.length} карточек?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowClearConfirm(false);
+                        onClearAllProducts();
+                      }}
+                      className="px-2.5 py-1.5 rounded bg-red-600 text-white font-mono text-xs font-bold hover:bg-red-700 transition-colors"
+                    >
+                      Да, удалить
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowClearConfirm(false)}
+                      className="px-2.5 py-1.5 rounded bg-[#1e222a] text-[#8b96a7] font-mono text-xs hover:text-white"
+                    >
+                      Отмена
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowClearConfirm(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a1417] text-red-400 hover:text-red-300 border border-red-900/40 hover:border-red-600/60 font-mono text-xs transition-colors"
+                    title="Удалить все дефолтные карточки из каталога и базы"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Удалить все карточки ({products.length})</span>
+                  </button>
+                )
+              )}
+
+              {products.length === 0 && onResetDefaults && (
+                <button
+                  type="button"
+                  onClick={onResetDefaults}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#141d2b] text-[#38bdf8] hover:text-white border border-[#2b4468] font-mono text-xs transition-colors"
+                >
+                  <RefreshCcw className="w-3.5 h-3.5" />
+                  <span>Восстановить демо-товары</span>
+                </button>
+              )}
+
+              <button
+                onClick={() => {
+                  triggerHaptic('medium');
+                  onAddProduct();
+                }}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[#f1f5f9] text-[#090a0c] font-mono text-xs font-bold uppercase tracking-wider hover:bg-white transition-all shadow-[0_0_15px_rgba(241,245,249,0.2)]"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Добавить новый товар</span>
+              </button>
+            </div>
           </div>
 
           {/* Products Table/List */}

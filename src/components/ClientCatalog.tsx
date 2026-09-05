@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Search, SlidersHorizontal, Sparkles, Send, ArrowUpRight, Edit3, FileText, Image, Plus } from 'lucide-react';
+import { Search, SlidersHorizontal, Sparkles, Send, ArrowUpRight, Edit3, FileText, Image, Plus, Lock } from 'lucide-react';
 import { Product, ViewMode, BrandSettings } from '../types';
 import { ProductCard } from './ProductCard';
-import { triggerHaptic } from '../utils/telegram';
+import { triggerHaptic, isInsideTelegram } from '../utils/telegram';
 
 interface ClientCatalogProps {
   products: Product[];
@@ -16,6 +16,7 @@ interface ClientCatalogProps {
   onEditProduct?: (product: Product) => void;
   onDeleteProduct?: (productId: string) => void;
   onToggleStock?: (productId: string) => void;
+  onNavigateToAdmin?: () => void;
 }
 
 const CATEGORIES = [
@@ -39,6 +40,7 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
   onEditProduct,
   onDeleteProduct,
   onToggleStock,
+  onNavigateToAdmin,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -299,6 +301,23 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Footer: Discrete admin portal link ONLY visible in regular desktop browser, hidden in Telegram Mini App */}
+      <footer className="pt-8 pb-4 text-center text-xs font-mono text-[#4b5563] border-t border-[#181c24] space-y-2">
+        <p>© {new Date().getFullYear()} {settings.brandName}. Все права защищены.</p>
+        {!isInsideTelegram() && onNavigateToAdmin && (
+          <div className="flex items-center justify-center pt-1">
+            <button
+              onClick={onNavigateToAdmin}
+              className="text-[11px] text-[#4b5565] hover:text-[#38bdf8] transition-colors flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:bg-[#12161f]"
+              title="Перейти в панель управления магазином"
+            >
+              <Lock className="w-3 h-3" />
+              <span>Панель управления (/admin)</span>
+            </button>
+          </div>
+        )}
+      </footer>
     </div>
   );
 };
