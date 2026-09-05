@@ -124,31 +124,16 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Mode Switcher Button: ONLY shown in browser or when in admin mode, NEVER shown in Telegram Mini App */}
-          {!inTelegram && (
+          {/* Mode Switcher: Only shown when inside admin mode so admin can preview the store */}
+          {viewMode === 'admin' && (
             <button
               id="view-mode-toggle-btn"
               onClick={handleModeClick}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono tracking-wider transition-all duration-200 ${
-                viewMode === 'admin'
-                  ? 'bg-[#e2e8f0] text-[#0f172a] border-[#e2e8f0] font-bold shadow-[0_0_18px_rgba(226,232,240,0.25)]'
-                  : 'bg-[#14171d] text-[#94a3b8] border-[#2b3341] hover:border-[#38bdf8]/50 hover:text-white hover:bg-[#1b2029]'
-              }`}
-              title={viewMode === 'admin' ? 'Вернуться в режим покупателя' : 'Панель управления для владельца (/admin)'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-mono tracking-wider transition-all duration-200 bg-[#e2e8f0] text-[#0f172a] border-[#e2e8f0] font-bold shadow-[0_0_18px_rgba(226,232,240,0.25)] hover:bg-white"
+              title="Вернуться в режим покупателя"
             >
-              {viewMode === 'admin' ? (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#0f172a]" />
-                  <span className="hidden xs:inline">Панель:</span>
-                  <span>Владелец</span>
-                </>
-              ) : (
-                <>
-                  <User className="w-3.5 h-3.5 text-[#38bdf8]" />
-                  <span className="font-semibold hidden sm:inline">Админка</span>
-                  <span className="font-semibold sm:hidden">Вход</span>
-                </>
-              )}
+              <ShieldCheck className="w-3.5 h-3.5 text-[#0f172a]" />
+              <span className="hidden xs:inline">Витрина</span>
             </button>
           )}
 

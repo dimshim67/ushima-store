@@ -302,21 +302,9 @@ export const ClientCatalog: React.FC<ClientCatalogProps> = ({
         </div>
       </section>
 
-      {/* Footer: Discrete admin portal link ONLY visible in regular desktop browser, hidden in Telegram Mini App */}
-      <footer className="pt-8 pb-4 text-center text-xs font-mono text-[#4b5563] border-t border-[#181c24] space-y-2">
+      {/* Footer */}
+      <footer className="pt-8 pb-4 text-center text-xs font-mono text-[#4b5563] border-t border-[#181c24]">
         <p>© {new Date().getFullYear()} {settings.brandName}. Все права защищены.</p>
-        {!isInsideTelegram() && onNavigateToAdmin && (
-          <div className="flex items-center justify-center pt-1">
-            <button
-              onClick={onNavigateToAdmin}
-              className="text-[11px] text-[#4b5565] hover:text-[#38bdf8] transition-colors flex items-center gap-1.5 px-2.5 py-1 rounded-md hover:bg-[#12161f]"
-              title="Перейти в панель управления магазином"
-            >
-              <Lock className="w-3 h-3" />
-              <span>Панель управления (/admin)</span>
-            </button>
-          </div>
-        )}
       </footer>
     </div>
   );

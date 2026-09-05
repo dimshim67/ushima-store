@@ -29,9 +29,18 @@ const STORAGE_KEYS = {
 
 const checkIsAdminUrl = () => {
   if (typeof window === 'undefined') return false;
-  const path = window.location.pathname.toLowerCase();
+  const path = window.location.pathname.toLowerCase().replace(/\/+$/, '');
   const search = new URLSearchParams(window.location.search);
-  return path === '/admin' || path.startsWith('/admin/') || search.get('admin') === 'true';
+  const hash = window.location.hash.toLowerCase();
+  return (
+    path === '/admin' ||
+    path.startsWith('/admin/') ||
+    search.get('admin') === 'true' ||
+    search.has('admin') ||
+    hash === '#admin' ||
+    hash.startsWith('#admin') ||
+    hash.startsWith('#/admin')
+  );
 };
 
 export default function App() {
@@ -131,9 +140,9 @@ export default function App() {
     }
   }, [viewMode]);
 
-  // Handle browser back/forward buttons
+  // Handle browser back/forward buttons and hash navigation
   useEffect(() => {
-    const handlePopState = () => {
+    const handleUrlChange = () => {
       if (isInsideTelegram()) {
         setViewMode('client');
         return;
@@ -144,8 +153,12 @@ export default function App() {
         setViewMode('client');
       }
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
   }, []);
 
   // Sync state with server database
